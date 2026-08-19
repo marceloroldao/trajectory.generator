@@ -90,35 +90,7 @@ Canonical rule:
 2. otherwise split at the public midpoint;
 3. recurse.
 
-The tree is data-dependent but deterministic under the public configuration.
-
-#### Important correction
-
-The first report described 20 steps as the tree's capacity frontier. That was too strong.
-
-The recurrence used by the implementation,
-
-```text
-E(n) = LeafRange(n) + E(left) * E(right),
-```
-
-is a **redundant numeric address envelope**. It double-counts many trajectories that already have leaf representations.
-
-Because unrestricted recursion may continue all the way to length-1 leaves, every binary sequence is eventually admissible. Therefore the exact semantic family is
-
-```text
-S(n) = 2^n.
-```
-
-So the unrestricted self-resolving grammar has the full entropy of arbitrary binary data. For one 63-bit final state, its information-theoretic arbitrary-data limit is still `n <= 63`.
-
-The previously reported 20-step value is only the frontier of the current redundant address layout.
-
-See:
-
-- `docs/self_resolving_tree_2026-08-19.md`
-- `docs/canonical_tree_correction_2026-08-19.md`
-- `experiments/canonical_tree_count.py`
+Important correction: unrestricted recursion ultimately admits every binary sequence, so its exact semantic family is `2^n`; the earlier 20-step value was only a redundant numeric-envelope limit, not true semantic capacity.
 
 ### 8. Admissibility laws
 
@@ -126,82 +98,43 @@ See:
 
 These experiments change the question from how to encode every trajectory to **which trajectories are allowed by a public law**.
 
-A period-3 law forces one state in every three from the previous two states and a public phase. Only 2/3 of the raw steps remain independent, giving a 63-bit frontier of 94 steps.
-
-A state-dependent law produces Fibonacci counting without inserting Fibonacci or the golden ratio into the code. Its admissible counts satisfy
-
-```text
-N(n) = N(n-1) + N(n-2)
-```
-
-and therefore `N(n+1)/N(n)` tends to the golden ratio. Its 63-bit frontier is 89 steps.
-
-The exhaustive memory-2 scan tests all `3^4 = 81` laws and finds a discrete algebraic spectrum including the plastic constant, golden ratio, and tribonacci constant.
-
-The exhaustive memory-3 scan tests all `3^8 = 6,561` laws and finds about 193 numerical growth classes at `1e-9` rounding. Selected class counts include:
-
-```text
-plastic constant: 524 laws
-golden ratio:     264 laws
-tribonacci:         12 laws
-```
-
-The golden ratio is recurrent but not uniquely privileged.
+A period-3 law gives a 63-bit frontier of 94 steps. A state-dependent Fibonacci law gives 89 steps. Exhaustive memory-2 and memory-3 scans reveal many algebraic spectral growth classes, including the plastic constant, golden ratio, and tribonacci constant, without inserting those constants into the rules.
 
 ### 9. Robustness, Pareto, and orbit-style metrics
 
-The project separates independent properties of a trajectory law:
-
-```text
-entropy rate          h = log2(lambda)
-exact 63-bit frontier
-rule robustness       mutation stability in law space
-trajectory robustness survival under a one-bit state perturbation
-state occupancy       normalized Perron-state entropy
-mixing diagnostic     1 - |lambda2|/|lambda1|
-error propagation     number/span of violated transitions after a bit flip
-```
-
-A representative balanced law emerged near
-
-```text
-lambda ~= 1.285199033245
-h      ~= 0.361992 bit/step
-63-bit frontier = 170 steps
-```
-
-It is not phi, plastic, or tribonacci. This is useful evidence against selecting constants by prior expectation.
+The project separates entropy rate, exact frontier, rule robustness, trajectory robustness, occupancy, mixing, and error propagation. A representative balanced fixed-law class emerged near `lambda ~= 1.285199`, with frontier 170 steps.
 
 ### 10. Dynamic and endogenous universes
 
-`trajectory_generator/dynamic_law_codec.py` allows the active law to change deterministically with current history and public phase. The active-law sequence is regenerated during decoding and is not side metadata.
+`dynamic_law_codec.py`, `coherence_universe.py`, `emergent_law_bank.py`, and `policy_universe.py` progressively move the "universe" from a fixed law toward endogenous law selection.
 
-`trajectory_generator/coherence_universe.py` selects among three representative laws using a public coherence score. Its exact 63-bit frontier is 117 steps and the three laws all remain active.
-
-`trajectory_generator/emergent_law_bank.py` removes that hand-selected three-law bank. It evaluates **all 6,561 memory-3 laws** using only structural grammar features plus current history/phase.
-
-The first full-bank selector spontaneously collapses to only **7 active laws** across the 24 possible `(history, phase)` contexts. Their individual spectral radii lie approximately between 1.395 and 1.573; none is exactly the previously highlighted phi, plastic, or tribonacci class.
-
-Its exact 63-bit frontier is:
+Current exact 63-bit results include:
 
 ```text
-80 steps
+full-bank first selector: 80 steps
+three-law coherence selector: 117 steps
+balanced searched fixed policy: 184 steps
+rigid searched fixed policy: ~202 steps, but very low perturbation tolerance
 ```
 
-with:
+### 11. Second-order dynamic policy universe
+
+`trajectory_generator/dynamic_policy_universe.py`
+
+The selector weights themselves now change deterministically with `(history, phase)`. No policy sequence is stored externally.
+
+A moderate-entropy second-order policy found by seeded search has:
 
 ```text
-80 steps -> 7,152,557,373,046,875,000 admissible trajectories
-81 steps -> 10,728,836,059,570,312,500 admissible trajectories
+184 steps -> 2^63 admissible trajectories
+185 steps -> 2^64 admissible trajectories
 ```
 
-This is a useful negative/positive result: a larger endogenous law bank produces a genuine spontaneous active subset, but the first selector is too permissive and therefore reaches the 63-bit information limit sooner than the earlier 117-step coherence universe.
+It therefore **does not beat** the balanced fixed-policy capacity frontier. However, it uses 12 distinct active laws across the 24 `(history, phase)` contexts, versus 5 laws for the frozen 184-step policy, while sampled one-bit perturbation survival remains about 32.4%.
 
-See:
+This is an important negative result: making the policy layer more dynamic increases internal law diversity but does not automatically increase addressable information capacity.
 
-- `docs/dynamic_universe_2026-08-19.md`
-- `docs/coherence_universe_2026-08-19.md`
-- `docs/emergent_law_bank_2026-08-19.md`
+See `docs/dynamic_policy_universe_2026-08-19.md`.
 
 ## Fundamental limit
 
@@ -223,30 +156,18 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target is a **stable endogenous computational universe**:
+The current target is a **stable endogenous computational universe** in which state, policy, law, and transition all participate but every adaptive choice remains recoverable from the public dynamics.
 
-```text
-large public law bank
- -> state/phase coherence selector
- -> small active law subset
- -> trajectory grammar
- -> exact rank/address
- -> exact recovery from final_state + steps
-```
-
-The new full-bank result shows that spontaneous law selection is possible, but also that maximizing freedom shortens addressable trajectory length. The next experiments should tune the selector itself by measurable orbit/coherence criteria rather than by named constants, looking for a Pareto region among entropy, robustness, occupancy, mixing, and frontier length.
+The latest result shows that adding a second adaptive layer does not by itself improve the 184-step balanced frontier. The next experiments should therefore search for a genuinely useful invariant or state variable carried by the dynamics, rather than merely adding selector complexity.
 
 ## Quick start
 
 ```bash
+python experiments/dynamic_policy_search_memory3.py
+python experiments/policy_search_memory3.py
 python experiments/emergent_law_bank_scan.py
 python experiments/coherence_universe_scan.py
-python experiments/dynamic_universe_scan.py
 python experiments/local_law_memory3_scan.py
-python experiments/law_robustness_memory3.py
-python experiments/trajectory_perturbation_memory3.py --steps 64 --samples 2048 --seed 123
-python experiments/pareto_memory3.py
-python experiments/orbit_metrics_memory3.py --steps 64 --samples 1024 --seed 123
 python -m unittest discover -s tests -v
 ```
 
