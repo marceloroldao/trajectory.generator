@@ -49,5 +49,17 @@ from .dynamic_law_codec import (
     unrank_trajectory as unrank_dynamic_trajectory,
     validate as validate_dynamic_trajectory,
 )
+from .coherence_universe import (
+    DEFAULT_COHERENCE_UNIVERSE_CONFIG,
+    CoherenceUniverseConfig,
+    admissible_count as coherence_admissible_count,
+    capacity_ok as coherence_capacity_ok,
+    decode_coherence_universe,
+    encode_coherence_universe,
+    rank_trajectory as rank_coherence_trajectory,
+    select_law as coherence_select_law,
+    unrank_trajectory as unrank_coherence_trajectory,
+    validate as validate_coherence_trajectory,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
