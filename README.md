@@ -122,7 +122,7 @@ See:
 
 ### 8. Admissibility laws
 
-`trajectory_generator/admissible_trajectory.py` and `trajectory_generator/state_admissibility.py`
+`trajectory_generator/admissible_trajectory.py`, `trajectory_generator/state_admissibility.py`, and `trajectory_generator/finite_law_codec.py`
 
 These experiments change the question from how to encode every trajectory to **which trajectories are allowed by a public law**.
 
@@ -136,20 +136,61 @@ N(n) = N(n-1) + N(n-2)
 
 and therefore `N(n+1)/N(n)` tends to the golden ratio. Its 63-bit frontier is 89 steps.
 
-The exhaustive memory-2 scan in `experiments/local_law_scan.py` tests all `3^4 = 81` laws where each two-bit history state can force 0, force 1, or leave the next bit free. It finds nine distinct asymptotic growth factors. Among them are:
+The exhaustive memory-2 scan tests all `3^4 = 81` laws and finds a discrete algebraic spectrum including the plastic constant, golden ratio, and tribonacci constant.
+
+The exhaustive memory-3 scan tests all `3^8 = 6,561` laws and finds about 193 numerical growth classes at `1e-9` rounding. Selected class counts include:
 
 ```text
-1.324717957245...  plastic constant
-1.618033988750...  golden ratio
-1.839286755214...  tribonacci constant
+plastic constant: 524 laws
+golden ratio:     264 laws
+tribonacci:         12 laws
 ```
 
-The golden-ratio growth class appears in 12 of the 81 laws, but it is not unique. The broader result is a discrete spectrum of algebraic growth rates selected by finite local constraint graphs.
+The golden ratio is recurrent but not uniquely privileged.
+
+### 9. Robustness, Pareto, and orbit-style metrics
+
+The project now separates several independent properties of a trajectory law:
+
+```text
+entropy rate          h = log2(lambda)
+exact 63-bit frontier
+rule robustness       mutation stability in law space
+trajectory robustness survival under a one-bit state perturbation
+state occupancy       normalized Perron-state entropy
+mixing diagnostic     1 - |lambda2|/|lambda1|
+error propagation     number/span of violated transitions after a bit flip
+```
+
+A representative balanced law emerged near
+
+```text
+lambda ~= 1.285199033245
+h      ~= 0.361992 bit/step
+63-bit frontier = 170 steps
+```
+
+It is not phi, plastic, or tribonacci. This is useful evidence against selecting constants by prior expectation.
+
+Representative orbit-style metrics at 64 steps show a clear trade-off:
+
+| law | lambda | frontier63 | occupancy | mixing gap | flip survival |
+|---|---:|---:|---:|---:|---:|
+| balanced 1.285199 | 1.285199 | 170 | 0.7398 | 0.1964 | 0.0329 |
+| plastic | 1.324718 | 152 | 0.6341 | 0.2451 | 0.0300 |
+| golden ratio | 1.618034 | 90 | 0.7463 | 0.3820 | 0.5590 |
+| tribonacci | 1.839287 | 71 | 0.9230 | 0.4563 | 0.7691 |
+
+These are representative rules, not universal properties of each spectral class.
 
 See:
 
-- `docs/admissibility_laws_2026-08-19.md`
 - `docs/local_law_scan_2026-08-19.md`
+- `docs/local_law_memory3_scan_2026-08-19.md`
+- `docs/law_robustness_memory3_2026-08-19.md`
+- `docs/trajectory_perturbation_memory3_2026-08-19.md`
+- `docs/pareto_memory3_2026-08-19.md`
+- `docs/orbit_metrics_memory3_2026-08-19.md`
 
 ## Bounded-tree result
 
@@ -167,25 +208,11 @@ A public depth limit provides one simple test. With width 63, `K=5`, and relatio
 
 This is not yet the desired final architecture; it quantifies the cost of adaptive structural freedom.
 
-Reproduce with:
-
-```bash
-python experiments/bounded_tree_frontier.py --width 63 --max-tree-depth 4
-```
-
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
 
 Longer trajectories are exactly recoverable only when the admissible family is constrained enough that its entropy fits the final-state address space, or when additional information is supplied explicitly.
-
-The project therefore distinguishes:
-
-```text
-more structural coverage != more raw capacity
-longer trajectory        != more independent information
-canonical structure      != free metadata
-```
 
 For an admissible family `A_n`, the exact information accounting is
 
@@ -201,29 +228,41 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target is no longer a generic tree invariant alone. It is the **spectral structure of public trajectory laws**:
+The current target is to search for **stable computational universes** rather than a preferred constant:
 
 ```text
-local law -> transition graph -> growth factor lambda -> entropy rate log2(lambda)
+local law
+ -> transition graph
+ -> spectral growth
+ -> admissible entropy
+ -> occupancy/mixing
+ -> robustness/error propagation
+ -> exact trajectory address
 ```
 
-The next experiments expand the exhaustive search to larger local memories and time-phased rules, while rejecting trivial deterministic laws and comparing robustness, recurrence order, entropy rate, and exact 63-bit frontier.
+The working question is whether there is a reproducible region between two extremes:
+
+```text
+too free       -> high entropy, weak compression of trajectory length
+too constrained -> long frontier, rigid/fragile trajectory geometry
+```
+
+A useful law would preserve enough freedom to carry information while imposing enough structure to make long trajectories exactly reconstructible from a compact final address.
 
 ## Quick start
 
 ```bash
+python experiments/local_law_memory3_scan.py
+python experiments/law_robustness_memory3.py
+python experiments/trajectory_perturbation_memory3.py --steps 64 --samples 2048 --seed 123
+python experiments/pareto_memory3.py
+python experiments/orbit_metrics_memory3.py --steps 64 --samples 1024 --seed 123
 python experiments/local_law_scan.py
-python experiments/state_admissibility_phi.py
 python experiments/admissibility_frontier.py
-python experiments/canonical_tree_count.py --max-bits 24
-python experiments/bounded_tree_frontier.py --width 63 --max-tree-depth 4
-python experiments/recursive_compare.py
-python experiments/multiscale_compare.py
-python experiments/mitm_demo.py --bits 22
 python -m unittest discover -s tests -v
 ```
 
-No third-party Python dependency is required for the current experiments.
+NumPy is required for experiments that use eigendecomposition. Core exact codecs remain pure Python.
 
 ## License
 
