@@ -16,6 +16,16 @@ No trajectory log, side table, checksum, plaintext hint, or externally stored br
 
 This repository is a laboratory. Positive and negative results are both preserved.
 
+### Current experimental frontier
+
+The default 63-bit machine has been exhaustively enumerated through **21 input bits**. At 21 bits, all **2,097,152 trajectories** produced distinct final states for the same step count: **zero exact collisions were observed**. This establishes injectivity only within the tested domain; it does not prove scalability or injectivity beyond that frontier.
+
+See `docs/results_2026-08-19.md` and reproduce with:
+
+```bash
+python experiments/frontier_scan.py --from-bits 17 --max-bits 21
+```
+
 ## Core hypothesis
 
 Let a deterministic universe evolution be `U_t` and a data-dependent transition be `D_{b,t}`. The state evolves as
@@ -63,19 +73,22 @@ trajectory_generator/
     core.py             reversible dynamics
     decode.py           recovery from final state + step count
 experiments/
-    exhaustive_scan.py  exact collision/injectivity scans
+    exhaustive_scan.py  independent exact scan from t=0 for each length
+    frontier_scan.py    incremental exhaustive frontier + collision witnesses
     emergence_scan.py   orbit statistics; phi is analysis-only
     demo.py             end-to-end examples
 tests/
     test_core.py        inverse and recovery tests
 docs/
     METHODOLOGY.md      hypotheses, metrics, falsification criteria
+    results_2026-08-19.md current exhaustive frontier result
 ```
 
 ## Quick start
 
 ```bash
 python -m experiments.demo
+python experiments/frontier_scan.py --max-bits 21
 python -m experiments.exhaustive_scan --max-bits 20
 python -m unittest discover -s tests -v
 ```
