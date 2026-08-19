@@ -150,7 +150,7 @@ The golden ratio is recurrent but not uniquely privileged.
 
 ### 9. Robustness, Pareto, and orbit-style metrics
 
-The project now separates several independent properties of a trajectory law:
+The project separates independent properties of a trajectory law:
 
 ```text
 entropy rate          h = log2(lambda)
@@ -172,41 +172,36 @@ h      ~= 0.361992 bit/step
 
 It is not phi, plastic, or tribonacci. This is useful evidence against selecting constants by prior expectation.
 
-Representative orbit-style metrics at 64 steps show a clear trade-off:
+### 10. Dynamic and endogenous universes
 
-| law | lambda | frontier63 | occupancy | mixing gap | flip survival |
-|---|---:|---:|---:|---:|---:|
-| balanced 1.285199 | 1.285199 | 170 | 0.7398 | 0.1964 | 0.0329 |
-| plastic | 1.324718 | 152 | 0.6341 | 0.2451 | 0.0300 |
-| golden ratio | 1.618034 | 90 | 0.7463 | 0.3820 | 0.5590 |
-| tribonacci | 1.839287 | 71 | 0.9230 | 0.4563 | 0.7691 |
+`trajectory_generator/dynamic_law_codec.py` allows the active law to change deterministically with current history and public phase. The active-law sequence is regenerated during decoding and is not side metadata.
 
-These are representative rules, not universal properties of each spectral class.
+`trajectory_generator/coherence_universe.py` selects among three representative laws using a public coherence score. Its exact 63-bit frontier is 117 steps and the three laws all remain active.
+
+`trajectory_generator/emergent_law_bank.py` removes that hand-selected three-law bank. It evaluates **all 6,561 memory-3 laws** using only structural grammar features plus current history/phase.
+
+The first full-bank selector spontaneously collapses to only **7 active laws** across the 24 possible `(history, phase)` contexts. Their individual spectral radii lie approximately between 1.395 and 1.573; none is exactly the previously highlighted phi, plastic, or tribonacci class.
+
+Its exact 63-bit frontier is:
+
+```text
+80 steps
+```
+
+with:
+
+```text
+80 steps -> 7,152,557,373,046,875,000 admissible trajectories
+81 steps -> 10,728,836,059,570,312,500 admissible trajectories
+```
+
+This is a useful negative/positive result: a larger endogenous law bank produces a genuine spontaneous active subset, but the first selector is too permissive and therefore reaches the 63-bit information limit sooner than the earlier 117-step coherence universe.
 
 See:
 
-- `docs/local_law_scan_2026-08-19.md`
-- `docs/local_law_memory3_scan_2026-08-19.md`
-- `docs/law_robustness_memory3_2026-08-19.md`
-- `docs/trajectory_perturbation_memory3_2026-08-19.md`
-- `docs/pareto_memory3_2026-08-19.md`
-- `docs/orbit_metrics_memory3_2026-08-19.md`
-
-## Bounded-tree result
-
-To create a genuinely structured family for `steps > width`, recursion must be able to **reject** trajectories instead of always subdividing until single-bit leaves.
-
-A public depth limit provides one simple test. With width 63, `K=5`, and relation levels 0..3, the conservative address frontiers are:
-
-| maximum tree depth | conservative frontier |
-|---:|---:|
-| 0 | 10,672 |
-| 1 | 274 |
-| 2 | 68 |
-| 3 | 46 |
-| 4 | 28 |
-
-This is not yet the desired final architecture; it quantifies the cost of adaptive structural freedom.
+- `docs/dynamic_universe_2026-08-19.md`
+- `docs/coherence_universe_2026-08-19.md`
+- `docs/emergent_law_bank_2026-08-19.md`
 
 ## Fundamental limit
 
@@ -228,37 +223,30 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target is to search for **stable computational universes** rather than a preferred constant:
+The current target is a **stable endogenous computational universe**:
 
 ```text
-local law
- -> transition graph
- -> spectral growth
- -> admissible entropy
- -> occupancy/mixing
- -> robustness/error propagation
- -> exact trajectory address
+large public law bank
+ -> state/phase coherence selector
+ -> small active law subset
+ -> trajectory grammar
+ -> exact rank/address
+ -> exact recovery from final_state + steps
 ```
 
-The working question is whether there is a reproducible region between two extremes:
-
-```text
-too free       -> high entropy, weak compression of trajectory length
-too constrained -> long frontier, rigid/fragile trajectory geometry
-```
-
-A useful law would preserve enough freedom to carry information while imposing enough structure to make long trajectories exactly reconstructible from a compact final address.
+The new full-bank result shows that spontaneous law selection is possible, but also that maximizing freedom shortens addressable trajectory length. The next experiments should tune the selector itself by measurable orbit/coherence criteria rather than by named constants, looking for a Pareto region among entropy, robustness, occupancy, mixing, and frontier length.
 
 ## Quick start
 
 ```bash
+python experiments/emergent_law_bank_scan.py
+python experiments/coherence_universe_scan.py
+python experiments/dynamic_universe_scan.py
 python experiments/local_law_memory3_scan.py
 python experiments/law_robustness_memory3.py
 python experiments/trajectory_perturbation_memory3.py --steps 64 --samples 2048 --seed 123
 python experiments/pareto_memory3.py
 python experiments/orbit_metrics_memory3.py --steps 64 --samples 1024 --seed 123
-python experiments/local_law_scan.py
-python experiments/admissibility_frontier.py
 python -m unittest discover -s tests -v
 ```
 
