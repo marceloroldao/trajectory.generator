@@ -61,5 +61,19 @@ from .coherence_universe import (
     unrank_trajectory as unrank_coherence_trajectory,
     validate as validate_coherence_trajectory,
 )
+from .emergent_law_bank import (
+    ALL_RULES as EMERGENT_MEMORY3_RULE_BANK,
+    DEFAULT_EMERGENT_LAW_BANK_CONFIG,
+    EmergentLawBankConfig,
+    active_action as emergent_active_action,
+    admissible_count as emergent_admissible_count,
+    capacity_ok as emergent_capacity_ok,
+    decode_emergent_law_bank,
+    encode_emergent_law_bank,
+    rank_trajectory as rank_emergent_trajectory,
+    selected_rule_index as emergent_selected_rule_index,
+    unrank_trajectory as unrank_emergent_trajectory,
+    validate as validate_emergent_trajectory,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
