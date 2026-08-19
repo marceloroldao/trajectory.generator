@@ -11,7 +11,13 @@ from .core import (
     step_forward,
     step_inverse,
 )
-from .decode import DecodeResult, decode_exhaustive, decode_mitm, recover_unique
+from .decode import (
+    DecodeResult,
+    decode_exhaustive,
+    decode_mitm,
+    decode_mitm_partitioned,
+    recover_unique,
+)
 
 __all__ = [
     "DEFAULT_CONFIG",
@@ -22,6 +28,7 @@ __all__ = [
     "bytes_to_bits",
     "decode_exhaustive",
     "decode_mitm",
+    "decode_mitm_partitioned",
     "encode_bits",
     "int_to_bits",
     "recover_unique",
