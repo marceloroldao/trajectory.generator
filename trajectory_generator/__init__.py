@@ -36,5 +36,18 @@ from .finite_law_codec import (
     unrank_trajectory as unrank_finite_law_trajectory,
     validate as validate_finite_law_trajectory,
 )
+from .dynamic_law_codec import (
+    DEFAULT_DYNAMIC_CONFIG,
+    DynamicLawConfig,
+    active_action as dynamic_active_action,
+    active_rule_index as dynamic_active_rule_index,
+    admissible_count as dynamic_admissible_count,
+    capacity_ok as dynamic_capacity_ok,
+    decode_dynamic_law,
+    encode_dynamic_law,
+    rank_trajectory as rank_dynamic_trajectory,
+    unrank_trajectory as unrank_dynamic_trajectory,
+    validate as validate_dynamic_trajectory,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
