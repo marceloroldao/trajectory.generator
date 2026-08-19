@@ -16,7 +16,7 @@ No trajectory log, side table, checksum, plaintext hint, or externally stored br
 
 This repository is a laboratory. Positive and negative results are both preserved.
 
-## Five complementary constructions
+## Seven complementary constructions
 
 The project keeps distinct constructions so their claims are not mixed.
 
@@ -63,12 +63,7 @@ With a 63-bit state and `K=5`, the complete constrained family remains exactly a
 
 ### 4. Multi-scale trajectory tree
 
-`trajectory_generator/multiscale_trajectory.py` evaluates more than one relational basis. The current experiment includes:
-
-- local relation: compare with the previous state;
-- Fenwick/tree relation: compare with a hierarchical ancestor.
-
-A trajectory such as repeated `00001111` can be simpler in the tree basis than in the local basis. With two public bases, 63 bits and `K=5`, the conservative full-family envelope fits through **12,259 steps**. The gain is structural coverage rather than raw capacity.
+`trajectory_generator/multiscale_trajectory.py` evaluates more than one relational basis: local and Fenwick/tree. With two public bases, 63 bits and `K=5`, the conservative full-family envelope fits through **12,259 steps**. The gain is structural coverage rather than raw capacity.
 
 ### 5. Recursive relation trajectory
 
@@ -78,16 +73,44 @@ A trajectory such as repeated `00001111` can be simpler in the tree basis than i
 state -> relation -> relation of relations -> relation of relations of relations
 ```
 
-This exposes patterns that are not sparse at the raw or first-relation level. Examples:
+Examples:
 
 ```text
 010101...      -> 1 non-root deviation at level 2
 00110011...    -> 1 non-root deviation at level 3
 ```
 
-With levels 0..3, a 63-bit state and `K=5`, the conservative union envelope fits through **10,672 steps**. Again, the benefit is wider coverage of structured trajectories, not increased information-theoretic capacity.
+With levels 0..3, 63 bits and `K=5`, the conservative union envelope fits through **10,672 steps**.
 
-See `docs/recursive_trajectory_2026-08-19.md`.
+### 6. Dyadic trajectory tree
+
+`trajectory_generator/dyadic_trajectory_tree.py` permits one public midpoint split. The cut position therefore costs no external metadata, while the left and right halves may choose different recursive levels.
+
+With 63 bits, `K=5`, and levels 0..3, the conservative envelope fits through about **274 steps**. This is lower raw capacity than the global recursive family, but it can represent traces whose two halves follow different structural laws.
+
+The companion `adaptive_trajectory_tree.py` keeps the negative experiment with arbitrary cuts: once cut positions are fully accounted for, the conservative frontier collapses to about **48 steps**. Freedom of structure has an information cost.
+
+### 7. Self-resolving trajectory tree
+
+`trajectory_generator/self_resolving_tree.py` makes the tree canonical:
+
+1. a block is a leaf if any allowed recursive level has at most `K` deviations;
+2. otherwise it splits at the public midpoint;
+3. the same rule recurses on both children.
+
+Leaf and split nodes occupy disjoint numeric ranges, so the decoder infers the tree directly from the recovered address. It still receives only `(final_state, steps)` plus the public machine definition.
+
+A structural witness is:
+
+```text
+10001001001110101011
+```
+
+which is not globally leaf-admissible under `K=5`, but its two midpoint halves are admissible at different relation depths. The tree therefore emerges canonically from the trajectory.
+
+The important negative result is capacity: a fully recursive leaf-or-split envelope grows quickly. With 63 bits, `K=5`, and levels 0..3, the conservative frontier is only **20 steps**; step 21 exceeds `2^63`.
+
+See `docs/self_resolving_tree_2026-08-19.md`.
 
 ## Core hypothesis
 
@@ -97,11 +120,12 @@ Let a deterministic universe evolution be `U_t` and a data-dependent transition 
 X_(t+1) = D_(b_t,t)( U_t(X_t) )
 ```
 
-The project now separates three kinds of questions:
+The project separates four questions:
 
 1. can generic reversible dynamics preserve trajectory identity?
 2. can arbitrary bits be given a direct reversible trajectory address up to the state-capacity limit?
 3. can long structured traces be represented by sparse relations at one or more hierarchical levels?
+4. can the hierarchy itself be determined canonically without external tree metadata?
 
 The dynamics intentionally do **not** contain the golden ratio or another preferred irrational constant. If a stable scale ratio appears, it must emerge from measured optimal structures rather than being inserted into the generator.
 
@@ -114,8 +138,9 @@ Longer traces can be exactly recoverable only when the admissible family is cons
 This project therefore distinguishes carefully between:
 
 ```text
-more capacity        != more structural coverage
+more capacity         != more structural coverage
 longer raw trajectory != more independent information
+structure freedom     != free metadata
 ```
 
 ## Repository layout
@@ -128,6 +153,9 @@ trajectory_generator/
     hierarchical_trajectory.py
     multiscale_trajectory.py
     recursive_trajectory.py
+    adaptive_trajectory_tree.py
+    dyadic_trajectory_tree.py
+    self_resolving_tree.py
 experiments/
     exhaustive_scan.py
     frontier_scan.py
@@ -145,6 +173,8 @@ tests/
     test_hierarchical_trajectory.py
     test_multiscale_trajectory.py
     test_recursive_trajectory.py
+    test_dyadic_trajectory_tree.py
+    test_self_resolving_tree.py
 docs/
     METHODOLOGY.md
     results_2026-08-19.md
@@ -155,6 +185,8 @@ docs/
     hierarchical_trajectory_2026-08-19.md
     multiscale_trajectory_2026-08-19.md
     recursive_trajectory_2026-08-19.md
+    adaptive_tree_2026-08-19.md
+    self_resolving_tree_2026-08-19.md
 ```
 
 ## Quick start
