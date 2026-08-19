@@ -120,6 +120,37 @@ See:
 - `docs/canonical_tree_correction_2026-08-19.md`
 - `experiments/canonical_tree_count.py`
 
+### 8. Admissibility laws
+
+`trajectory_generator/admissible_trajectory.py` and `trajectory_generator/state_admissibility.py`
+
+These experiments change the question from how to encode every trajectory to **which trajectories are allowed by a public law**.
+
+A period-3 law forces one state in every three from the previous two states and a public phase. Only 2/3 of the raw steps remain independent, giving a 63-bit frontier of 94 steps.
+
+A state-dependent law produces Fibonacci counting without inserting Fibonacci or the golden ratio into the code. Its admissible counts satisfy
+
+```text
+N(n) = N(n-1) + N(n-2)
+```
+
+and therefore `N(n+1)/N(n)` tends to the golden ratio. Its 63-bit frontier is 89 steps.
+
+The exhaustive memory-2 scan in `experiments/local_law_scan.py` tests all `3^4 = 81` laws where each two-bit history state can force 0, force 1, or leave the next bit free. It finds nine distinct asymptotic growth factors. Among them are:
+
+```text
+1.324717957245...  plastic constant
+1.618033988750...  golden ratio
+1.839286755214...  tribonacci constant
+```
+
+The golden-ratio growth class appears in 12 of the 81 laws, but it is not unique. The broader result is a discrete spectrum of algebraic growth rates selected by finite local constraint graphs.
+
+See:
+
+- `docs/admissibility_laws_2026-08-19.md`
+- `docs/local_law_scan_2026-08-19.md`
+
 ## Bounded-tree result
 
 To create a genuinely structured family for `steps > width`, recursion must be able to **reject** trajectories instead of always subdividing until single-bit leaves.
@@ -156,21 +187,34 @@ longer trajectory        != more independent information
 canonical structure      != free metadata
 ```
 
-## Current research direction
-
-The next target is a **public resolution invariant** that can reject or change scale without carrying an explicit branch decision at every tree node.
-
-Conceptually:
+For an admissible family `A_n`, the exact information accounting is
 
 ```text
-I(state, time, scale) -> continue / change scale / reject
+H_adm(n) = log2 |A_n|.
 ```
 
-A useful invariant must be deterministic for encoder and decoder, preserve exact recovery, and reduce the admissible family rather than merely subdividing arbitrary data until it becomes trivially representable.
+A `w`-bit final state can address the whole family only if
+
+```text
+H_adm(n) <= w.
+```
+
+## Current research direction
+
+The current target is no longer a generic tree invariant alone. It is the **spectral structure of public trajectory laws**:
+
+```text
+local law -> transition graph -> growth factor lambda -> entropy rate log2(lambda)
+```
+
+The next experiments expand the exhaustive search to larger local memories and time-phased rules, while rejecting trivial deterministic laws and comparing robustness, recurrence order, entropy rate, and exact 63-bit frontier.
 
 ## Quick start
 
 ```bash
+python experiments/local_law_scan.py
+python experiments/state_admissibility_phi.py
+python experiments/admissibility_frontier.py
 python experiments/canonical_tree_count.py --max-bits 24
 python experiments/bounded_tree_frontier.py --width 63 --max-tree-depth 4
 python experiments/recursive_compare.py
