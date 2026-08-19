@@ -16,9 +16,9 @@ No trajectory log, side table, checksum, plaintext hint, or externally stored br
 
 This repository is a laboratory. Positive and negative results are both preserved.
 
-## Two complementary machines
+## Three complementary machines
 
-The project now keeps two distinct experimental constructions rather than mixing their claims.
+The project keeps three distinct constructions so their claims are not mixed.
 
 ### 1. Mixed-state machine
 
@@ -36,9 +36,9 @@ partitioned MITM: exact memory/time trade-off
 
 Validated MITM target recoveries include 22, 24, 28, 32, and 36-bit trajectories. These are target-specific uniqueness results, not global collision-free proofs at those lengths.
 
-### 2. Trajectory-address machine
+### 2. Linear trajectory-address machine
 
-`trajectory_generator/trajectory_address.py` asks a constructive question: can the dynamics deliberately preserve one fresh degree of freedom per arbitrary input bit so that recovery becomes linear-time?
+`trajectory_generator/trajectory_address.py` asks a constructive question: can the dynamics deliberately preserve one fresh degree of freedom per arbitrary input bit so that recovery becomes direct?
 
 Yes, for `steps <= state_width`.
 
@@ -55,9 +55,31 @@ arbitrary capacity: at most state_width bits
 
 Random full-capacity 63-bit tests recover exactly. Exhaustive full-capacity scans at widths 8, 12, and 16 found zero collisions and zero decode failures. At `n = width`, the tested construction uses the full finite state space bijectively.
 
-This second machine is a **reversible trajectory address**, not compression and not a cryptographic hash.
+This machine is a **reversible trajectory address**, not compression and not a cryptographic hash.
 
 See `docs/trajectory_address_2026-08-19.md`.
+
+### 3. Hierarchical / relational trajectory address
+
+`trajectory_generator/hierarchical_trajectory.py` asks whether long but structured trajectories can be addressed by storing **relations between changes** rather than one explicit degree of freedom per raw step.
+
+The current constrained family stores the initial bit plus the ordered positions where the bit changes. For length `n` and at most `K` changes, the number of admissible trajectories is
+
+```text
+M(n,K) = 2 * sum(C(n-1, j), j=0..K)
+```
+
+and exact recovery is permitted only when
+
+```text
+M(n,K) <= 2^state_width.
+```
+
+With the default 63-bit state and `max_changes = 5`, the complete admissible family remains exactly addressable through **14,082 steps**; step 14,083 exceeds the 63-bit capacity for that constrained family.
+
+This is not arbitrary 14,082-bit compression. The advantage exists because the admissible trajectory family has far less than 14,082 bits of entropy.
+
+See `docs/hierarchical_trajectory_2026-08-19.md`.
 
 ## Core hypothesis
 
@@ -67,10 +89,11 @@ Let a deterministic universe evolution be `U_t` and a data-dependent transition 
 X_(t+1) = D_(b_t,t)( U_t(X_t) )
 ```
 
-The project studies two questions separately:
+The project studies three questions separately:
 
 1. can generic reversible mixing preserve enough trajectory identity for exact inversion over useful finite domains?
 2. can a deliberately structured trajectory address attain exact recovery efficiently without hidden side information?
+3. can structured long trajectories be represented more compactly by relations among changes while keeping the information accounting explicit?
 
 The dynamics intentionally do **not** contain the golden ratio or any other preferred irrational constant. If a stable ratio appears in orbit/trajectory measurements, it must emerge from the dynamics rather than being inserted into them.
 
@@ -78,9 +101,9 @@ The dynamics intentionally do **not** contain the golden ratio or any other pref
 
 For a fixed `w`-bit final state and a fixed step count `n`, there are at most `2^w` possible final states but `2^n` arbitrary binary trajectories. Therefore, when `n > w`, a globally injective mapping of *all* possible `n`-bit messages into one `w`-bit final state is impossible by the pigeonhole principle.
 
-The trajectory-address construction reaches this arbitrary-data capacity boundary (`n <= w`) but does not exceed it.
+The linear trajectory-address construction reaches this arbitrary-data capacity boundary (`n <= w`) but does not exceed it.
 
-Longer trajectories can only be exactly recoverable from the same fixed-width final state if the admissible input family is constrained so that its entropy is no greater than the state capacity, or if additional state/metadata is supplied explicitly.
+Longer trajectories can be exactly recoverable from the same fixed-width final state only when the admissible input family is constrained so that its entropy is no greater than the state capacity, or when additional state/metadata is supplied explicitly. The hierarchical experiment studies exactly this constrained case.
 
 ## Why this differs from the earlier XOR/NOT prototype
 
@@ -92,7 +115,7 @@ The earlier prototype used transformations dominated by
 
 which is equivalent, at fixed width, to XOR with a time-dependent constant. XOR compositions commute, so much of the ordering information collapses.
 
-The mixed-state core replaces that with reversible non-commutative operations. The trajectory-address construction takes a different route: it explicitly preserves a fresh reachable-state degree of freedom for each new arbitrary bit.
+The mixed-state core replaces that with reversible non-commutative operations. The linear trajectory-address construction explicitly preserves a fresh reachable-state degree of freedom for each new arbitrary bit. The hierarchical construction instead ranks a constrained family by its relational change structure.
 
 ## Repository layout
 
@@ -100,7 +123,8 @@ The mixed-state core replaces that with reversible non-commutative operations. T
 trajectory_generator/
     core.py                    generic reversible mixed-state dynamics
     decode.py                  exhaustive + MITM + partitioned MITM recovery
-    trajectory_address.py      constructive linear-time trajectory address
+    trajectory_address.py      constructive trajectory address for arbitrary bits
+    hierarchical_trajectory.py relational address for constrained trajectories
 experiments/
     exhaustive_scan.py
     frontier_scan.py
@@ -113,6 +137,7 @@ tests/
     test_core.py
     test_decode.py
     test_trajectory_address.py
+    test_hierarchical_trajectory.py
 docs/
     METHODOLOGY.md
     results_2026-08-19.md
@@ -120,6 +145,7 @@ docs/
     partitioned_mitm_2026-08-19.md
     universe_ablation_2026-08-19.md
     trajectory_address_2026-08-19.md
+    hierarchical_trajectory_2026-08-19.md
 ```
 
 ## Quick start
