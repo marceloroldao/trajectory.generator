@@ -90,5 +90,22 @@ from .policy_universe import (
     unrank_trajectory as unrank_policy_trajectory,
     validate as validate_policy_trajectory,
 )
+from .dynamic_policy_universe import (
+    DEFAULT_DYNAMIC_POLICY_UNIVERSE_CONFIG,
+    DynamicPolicyUniverseConfig,
+    EXTREME_WEIGHTS as DYNAMIC_POLICY_EXTREME_WEIGHTS,
+    PHASE1_WEIGHTS as DYNAMIC_POLICY_PHASE1_WEIGHTS,
+    BALANCED_WEIGHTS as DYNAMIC_POLICY_BALANCED_WEIGHTS,
+    active_action as dynamic_policy_active_action,
+    active_weights as dynamic_policy_active_weights,
+    admissible_count as dynamic_policy_admissible_count,
+    capacity_ok as dynamic_policy_capacity_ok,
+    decode_dynamic_policy_universe,
+    encode_dynamic_policy_universe,
+    rank_trajectory as rank_dynamic_policy_trajectory,
+    selected_rule_index as dynamic_policy_selected_rule_index,
+    unrank_trajectory as unrank_dynamic_policy_trajectory,
+    validate as validate_dynamic_policy_trajectory,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
