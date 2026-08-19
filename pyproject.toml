@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trajectory-generator"
+version = "0.1.0.dev0"
+description = "Experimental reversible trajectory generator and final-state recovery laboratory"
+requires-python = ">=3.10"
+authors = [{name = "Marcelo Roldão Matos"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3",
+]
+
+[tool.setuptools.packages.find]
+include = ["trajectory_generator*"]
