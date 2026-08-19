@@ -16,9 +16,9 @@ No trajectory log, side table, checksum, plaintext hint, or externally stored br
 
 This repository is a laboratory. Positive and negative results are both preserved.
 
-## Three complementary machines
+## Five complementary constructions
 
-The project keeps three distinct constructions so their claims are not mixed.
+The project keeps distinct constructions so their claims are not mixed.
 
 ### 1. Mixed-state machine
 
@@ -38,13 +38,7 @@ Validated MITM target recoveries include 22, 24, 28, 32, and 36-bit trajectories
 
 ### 2. Linear trajectory-address machine
 
-`trajectory_generator/trajectory_address.py` asks a constructive question: can the dynamics deliberately preserve one fresh degree of freedom per arbitrary input bit so that recovery becomes direct?
-
-Yes, for `steps <= state_width`.
-
-At every step the public deterministic universe permutes/mixes the state. The data bit is then injected into a coordinate known to be free of prior data deviation relative to the public universe baseline. The decoder reconstructs the same schedule from the step count, reads the bit, removes it, and inverts the universe step.
-
-For the current implementation:
+`trajectory_generator/trajectory_address.py` deliberately preserves one fresh degree of freedom per arbitrary input bit so recovery becomes direct for `steps <= state_width`.
 
 ```text
 search: none
@@ -53,33 +47,47 @@ recovery input: final_state + steps + public machine definition
 arbitrary capacity: at most state_width bits
 ```
 
-Random full-capacity 63-bit tests recover exactly. Exhaustive full-capacity scans at widths 8, 12, and 16 found zero collisions and zero decode failures. At `n = width`, the tested construction uses the full finite state space bijectively.
+Random full-capacity 63-bit tests recover exactly. Exhaustive full-capacity scans at widths 8, 12, and 16 found zero collisions and zero decode failures.
 
 This machine is a **reversible trajectory address**, not compression and not a cryptographic hash.
 
-See `docs/trajectory_address_2026-08-19.md`.
-
 ### 3. Hierarchical / relational trajectory address
 
-`trajectory_generator/hierarchical_trajectory.py` asks whether long but structured trajectories can be addressed by storing **relations between changes** rather than one explicit degree of freedom per raw step.
-
-The current constrained family stores the initial bit plus the ordered positions where the bit changes. For length `n` and at most `K` changes, the number of admissible trajectories is
+`trajectory_generator/hierarchical_trajectory.py` stores the initial bit plus positions where the value changes. For length `n` and at most `K` changes:
 
 ```text
 M(n,K) = 2 * sum(C(n-1, j), j=0..K)
 ```
 
-and exact recovery is permitted only when
+With a 63-bit state and `K=5`, the complete constrained family remains exactly addressable through **14,082 steps**. This is not arbitrary 14,082-bit compression; the admissible family has much lower entropy.
+
+### 4. Multi-scale trajectory tree
+
+`trajectory_generator/multiscale_trajectory.py` evaluates more than one relational basis. The current experiment includes:
+
+- local relation: compare with the previous state;
+- Fenwick/tree relation: compare with a hierarchical ancestor.
+
+A trajectory such as repeated `00001111` can be simpler in the tree basis than in the local basis. With two public bases, 63 bits and `K=5`, the conservative full-family envelope fits through **12,259 steps**. The gain is structural coverage rather than raw capacity.
+
+### 5. Recursive relation trajectory
+
+`trajectory_generator/recursive_trajectory.py` applies the relation transform repeatedly:
 
 ```text
-M(n,K) <= 2^state_width.
+state -> relation -> relation of relations -> relation of relations of relations
 ```
 
-With the default 63-bit state and `max_changes = 5`, the complete admissible family remains exactly addressable through **14,082 steps**; step 14,083 exceeds the 63-bit capacity for that constrained family.
+This exposes patterns that are not sparse at the raw or first-relation level. Examples:
 
-This is not arbitrary 14,082-bit compression. The advantage exists because the admissible trajectory family has far less than 14,082 bits of entropy.
+```text
+010101...      -> 1 non-root deviation at level 2
+00110011...    -> 1 non-root deviation at level 3
+```
 
-See `docs/hierarchical_trajectory_2026-08-19.md`.
+With levels 0..3, a 63-bit state and `K=5`, the conservative union envelope fits through **10,672 steps**. Again, the benefit is wider coverage of structured trajectories, not increased information-theoretic capacity.
+
+See `docs/recursive_trajectory_2026-08-19.md`.
 
 ## Core hypothesis
 
@@ -89,42 +97,37 @@ Let a deterministic universe evolution be `U_t` and a data-dependent transition 
 X_(t+1) = D_(b_t,t)( U_t(X_t) )
 ```
 
-The project studies three questions separately:
+The project now separates three kinds of questions:
 
-1. can generic reversible mixing preserve enough trajectory identity for exact inversion over useful finite domains?
-2. can a deliberately structured trajectory address attain exact recovery efficiently without hidden side information?
-3. can structured long trajectories be represented more compactly by relations among changes while keeping the information accounting explicit?
+1. can generic reversible dynamics preserve trajectory identity?
+2. can arbitrary bits be given a direct reversible trajectory address up to the state-capacity limit?
+3. can long structured traces be represented by sparse relations at one or more hierarchical levels?
 
-The dynamics intentionally do **not** contain the golden ratio or any other preferred irrational constant. If a stable ratio appears in orbit/trajectory measurements, it must emerge from the dynamics rather than being inserted into them.
+The dynamics intentionally do **not** contain the golden ratio or another preferred irrational constant. If a stable scale ratio appears, it must emerge from measured optimal structures rather than being inserted into the generator.
 
 ## Fundamental limit
 
-For a fixed `w`-bit final state and a fixed step count `n`, there are at most `2^w` possible final states but `2^n` arbitrary binary trajectories. Therefore, when `n > w`, a globally injective mapping of *all* possible `n`-bit messages into one `w`-bit final state is impossible by the pigeonhole principle.
+For a fixed `w`-bit final state and a fixed step count `n`, there are at most `2^w` possible final states but `2^n` arbitrary binary trajectories. Therefore, for `n > w`, a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible.
 
-The linear trajectory-address construction reaches this arbitrary-data capacity boundary (`n <= w`) but does not exceed it.
+Longer traces can be exactly recoverable only when the admissible family is constrained enough that its information content fits the final-state address space, or when additional state/metadata is supplied explicitly.
 
-Longer trajectories can be exactly recoverable from the same fixed-width final state only when the admissible input family is constrained so that its entropy is no greater than the state capacity, or when additional state/metadata is supplied explicitly. The hierarchical experiment studies exactly this constrained case.
-
-## Why this differs from the earlier XOR/NOT prototype
-
-The earlier prototype used transformations dominated by
+This project therefore distinguishes carefully between:
 
 ```text
-~(x ^ t)
+more capacity        != more structural coverage
+longer raw trajectory != more independent information
 ```
-
-which is equivalent, at fixed width, to XOR with a time-dependent constant. XOR compositions commute, so much of the ordering information collapses.
-
-The mixed-state core replaces that with reversible non-commutative operations. The linear trajectory-address construction explicitly preserves a fresh reachable-state degree of freedom for each new arbitrary bit. The hierarchical construction instead ranks a constrained family by its relational change structure.
 
 ## Repository layout
 
 ```text
 trajectory_generator/
-    core.py                    generic reversible mixed-state dynamics
-    decode.py                  exhaustive + MITM + partitioned MITM recovery
-    trajectory_address.py      constructive trajectory address for arbitrary bits
-    hierarchical_trajectory.py relational address for constrained trajectories
+    core.py
+    decode.py
+    trajectory_address.py
+    hierarchical_trajectory.py
+    multiscale_trajectory.py
+    recursive_trajectory.py
 experiments/
     exhaustive_scan.py
     frontier_scan.py
@@ -133,11 +136,15 @@ experiments/
     emergence_scan.py
     mitm_demo.py
     trajectory_address_scan.py
+    multiscale_compare.py
+    recursive_compare.py
 tests/
     test_core.py
     test_decode.py
     test_trajectory_address.py
     test_hierarchical_trajectory.py
+    test_multiscale_trajectory.py
+    test_recursive_trajectory.py
 docs/
     METHODOLOGY.md
     results_2026-08-19.md
@@ -146,14 +153,17 @@ docs/
     universe_ablation_2026-08-19.md
     trajectory_address_2026-08-19.md
     hierarchical_trajectory_2026-08-19.md
+    multiscale_trajectory_2026-08-19.md
+    recursive_trajectory_2026-08-19.md
 ```
 
 ## Quick start
 
 ```bash
+python experiments/recursive_compare.py
+python experiments/multiscale_compare.py
 python experiments/trajectory_address_scan.py --widths 8 12 16
 python experiments/mitm_demo.py --bits 22
-python experiments/frontier_scan.py --from-bits 17 --max-bits 22
 python -m unittest discover -s tests -v
 ```
 
@@ -161,16 +171,14 @@ No third-party Python dependency is required for the current experiments.
 
 ## Success criterion
 
-A result is only counted as exact recovery when the decoder receives only:
+A result is counted as exact recovery only when the decoder receives:
 
 ```text
 final_state
 number_of_steps
 ```
 
-plus the public deterministic machine definition and public initial state, and returns exactly one trajectory which reproduces that final state.
-
-If several trajectories match, the mixed-state decoders explicitly report ambiguity rather than guessing.
+plus the public deterministic machine definition and public initial state, and returns exactly one trajectory reproducing that final state.
 
 ## License
 
