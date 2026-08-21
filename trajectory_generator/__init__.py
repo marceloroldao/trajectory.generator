@@ -107,5 +107,21 @@ from .dynamic_policy_universe import (
     unrank_trajectory as unrank_dynamic_policy_trajectory,
     validate as validate_dynamic_policy_trajectory,
 )
+from .coherence_memory_universe import (
+    DEFAULT_COHERENCE_MEMORY_CONFIG,
+    POLICY_BANK as COHERENCE_MEMORY_POLICY_BANK,
+    CoherenceMemoryConfig,
+    active_action as coherence_memory_active_action,
+    admissible_count as coherence_memory_admissible_count,
+    capacity_ok as coherence_memory_capacity_ok,
+    decode_coherence_memory,
+    encode_coherence_memory,
+    initial_coherence,
+    rank_trajectory as rank_coherence_memory_trajectory,
+    selected_rule_index as coherence_memory_selected_rule_index,
+    unrank_trajectory as unrank_coherence_memory_trajectory,
+    update_coherence,
+    validate as validate_coherence_memory_trajectory,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
