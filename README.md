@@ -165,6 +165,22 @@ The 244-step profile is deliberately not the default because its much longer fro
 
 See `docs/coherence_memory_universe_2026-08-20.md`.
 
+### 13. Controlled memory-order comparison
+
+`experiments/memory_order_compare.py`
+
+The next ablation compares local history orders 2, 3, and 4 while holding the candidate-law-bank size fixed. This is necessary because the complete rule spaces grow as:
+
+```text
+memory 2 -> 81 laws
+memory 3 -> 6,561 laws
+memory 4 -> 43,046,721 laws
+```
+
+The benchmark therefore uses the same deterministic canonical bank size at each memory order and keeps selector semantics, coherence buckets, period, address width, and coherence policy fixed. It is a controlled structural comparison, not a replacement for the exhaustive memory-2 / memory-3 scans.
+
+See `docs/memory_order_comparison_2026-08-22.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -187,11 +203,12 @@ H_adm(n) <= w.
 
 The current target is a **stable endogenous computational universe** in which state, finite causal memory, policy, law, and transition all participate while every adaptive choice remains recoverable from the public dynamics.
 
-The coherence-memory scan is the first evidence that a new causal state variable can move the Pareto surface rather than merely add selector complexity. The next experiments should test whether more principled causal invariants can improve beyond the 187-step balanced point without collapsing perturbation tolerance, and whether the same effect survives at memory lengths other than three.
+The coherence-memory scan is the first evidence that a new causal state variable can move the Pareto surface rather than merely add selector complexity. The immediate next test is whether that effect survives a controlled change in local memory order from 2 to 3 to 4. Only after that ablation should a larger-memory architecture be promoted into the core API.
 
 ## Quick start
 
 ```bash
+python experiments/memory_order_compare.py --bank-size 256 --seed 12648430
 python experiments/coherence_memory_search.py --samples 64 --seed 123
 python experiments/dynamic_policy_search_memory3.py
 python experiments/policy_search_memory3.py
