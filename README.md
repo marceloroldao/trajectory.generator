@@ -121,20 +121,49 @@ rigid searched fixed policy: ~202 steps, but very low perturbation tolerance
 
 `trajectory_generator/dynamic_policy_universe.py`
 
-The selector weights themselves now change deterministically with `(history, phase)`. No policy sequence is stored externally.
+The selector weights themselves change deterministically with `(history, phase)`. No policy sequence is stored externally.
 
-A moderate-entropy second-order policy found by seeded search has:
+A moderate-entropy second-order policy remains at the 184-step balanced frontier while using more active laws. This is an important negative result: adding selector hierarchy increases internal diversity but does not automatically improve capacity.
+
+### 12. Accumulated coherence-memory universe
+
+`trajectory_generator/coherence_memory_universe.py`
+
+The causal grammar state is now:
 
 ```text
-184 steps -> 2^63 admissible trajectories
-185 steps -> 2^64 admissible trajectories
+(history_3bit, coherence_bucket, public_phase)
 ```
 
-It therefore **does not beat** the balanced fixed-policy capacity frontier. However, it uses 12 distinct active laws across the 24 `(history, phase)` contexts, versus 5 laws for the frozen 184-step policy, while sampled one-bit perturbation survival remains about 32.4%.
+The coherence bucket is a deterministic finite memory of the recovered path and is never supplied as side metadata. An exhaustive scan of all `3 * 5^4 = 1,875` four-bucket configurations found two useful reference points.
 
-This is an important negative result: making the policy layer more dynamic increases internal law diversity but does not automatically increase addressable information capacity.
+Balanced profile:
 
-See `docs/dynamic_policy_universe_2026-08-19.md`.
+```text
+update_mode = rolling
+policy_map  = (1, 3, 4, 0)
+187 steps -> 8,070,450,532,247,928,961 trajectories
+188 steps -> 16,140,901,064,495,857,795 trajectories
+rate300 ~= 0.3360245 bit/step
+sampled one-bit survival ~= 32.80%
+```
+
+This is a modest Pareto improvement over the earlier 184-step balanced universe while retaining similar perturbation tolerance.
+
+Capacity-oriented extreme:
+
+```text
+update_mode = signed_bit
+policy_map  = (4, 0, 2, 1)
+244 steps -> 8,887,676,923,343,977,346 trajectories
+245 steps -> 14,225,417,450,507,601,237 trajectories
+rate300 ~= 0.2570568 bit/step
+sampled one-bit survival ~= 1.31%
+```
+
+The 244-step profile is deliberately not the default because its much longer frontier is purchased with severe structural fragility.
+
+See `docs/coherence_memory_universe_2026-08-20.md`.
 
 ## Fundamental limit
 
@@ -156,13 +185,14 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target is a **stable endogenous computational universe** in which state, policy, law, and transition all participate but every adaptive choice remains recoverable from the public dynamics.
+The current target is a **stable endogenous computational universe** in which state, finite causal memory, policy, law, and transition all participate while every adaptive choice remains recoverable from the public dynamics.
 
-The latest result shows that adding a second adaptive layer does not by itself improve the 184-step balanced frontier. The next experiments should therefore search for a genuinely useful invariant or state variable carried by the dynamics, rather than merely adding selector complexity.
+The coherence-memory scan is the first evidence that a new causal state variable can move the Pareto surface rather than merely add selector complexity. The next experiments should test whether more principled causal invariants can improve beyond the 187-step balanced point without collapsing perturbation tolerance, and whether the same effect survives at memory lengths other than three.
 
 ## Quick start
 
 ```bash
+python experiments/coherence_memory_search.py --samples 64 --seed 123
 python experiments/dynamic_policy_search_memory3.py
 python experiments/policy_search_memory3.py
 python experiments/emergent_law_bank_scan.py
