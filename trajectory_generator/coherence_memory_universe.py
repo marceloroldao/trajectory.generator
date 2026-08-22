@@ -1,9 +1,9 @@
 """Trajectory universe with an explicit causal coherence memory.
 
-The decoder still receives only ``(final_state, steps)`` plus this public
-configuration.  The coherence variable is *not* stored as side metadata: it is
-recomputed while ranking/unranking because it evolves deterministically from
-the recovered path.
+The decoder receives only ``(final_state, steps)`` plus the public
+configuration. The coherence variable is not side metadata: it is recomputed
+while ranking/unranking because it evolves deterministically from the recovered
+path.
 
 State for the admissibility grammar is therefore
 
@@ -11,7 +11,7 @@ State for the admissibility grammar is therefore
 
 rather than just (history, phase).
 
-This module is exact enumerative coding of a constrained family.  It is not a
+This module is exact enumerative coding of a constrained family. It is not a
 compression scheme for arbitrary binary data.
 """
 
@@ -33,8 +33,6 @@ from .policy_universe import (
 MEMORY = 3
 STATE_COUNT = 1 << MEMORY
 
-# A small public policy bank.  Nothing here targets phi or another named
-# constant.  The search experiment may replace these profiles later.
 POLICY_BANK: tuple[tuple[int, ...], ...] = (
     BALANCED_POLICY_WEIGHTS,
     RIGID_LONG_POLICY_WEIGHTS,
@@ -48,9 +46,8 @@ POLICY_BANK: tuple[tuple[int, ...], ...] = (
 class CoherenceMemoryConfig:
     width: int = 63
     coherence_levels: int = 4
-    # Maps coherence bucket -> policy-bank index.
-    policy_map: tuple[int, ...] = (1, 0, 0, 3)
-    update_mode: str = "occupancy"  # occupancy | signed_bit | rolling
+    policy_map: tuple[int, ...] = (1, 3, 4, 0)
+    update_mode: str = "rolling"  # occupancy | signed_bit | rolling
     universe_mul: int = 0x5B
     universe_seed: int = 0x243F6A88
 
@@ -77,11 +74,25 @@ class CoherenceMemoryConfig:
         return self.modulus - 1
 
 
-DEFAULT_COHERENCE_MEMORY_CONFIG = CoherenceMemoryConfig()
+# Balanced profile found by exhaustive scan of all 5^4 policy maps for the three
+# public coherence update modes. At width 63 its exact frontier is 187 steps.
+BALANCED_COHERENCE_MEMORY_CONFIG = CoherenceMemoryConfig(
+    policy_map=(1, 3, 4, 0),
+    update_mode="rolling",
+)
+
+# Capacity-oriented profile from the same scan. It reaches 244 steps at width
+# 63 but is much more fragile to one-bit perturbation (~1.3% survival in the
+# documented sample), so it is intentionally not the default.
+LONG_FRONTIER_COHERENCE_MEMORY_CONFIG = CoherenceMemoryConfig(
+    policy_map=(4, 0, 2, 1),
+    update_mode="signed_bit",
+)
+
+DEFAULT_COHERENCE_MEMORY_CONFIG = BALANCED_COHERENCE_MEMORY_CONFIG
 
 
 def initial_coherence(prefix_state: int, cfg: CoherenceMemoryConfig) -> int:
-    # Public deterministic initialization from the first 3 bits.
     return min(cfg.coherence_levels - 1, prefix_state.bit_count())
 
 
@@ -93,7 +104,6 @@ def update_coherence(c: int, state: int, bit: int, cfg: CoherenceMemoryConfig) -
         return min(top, c + 1) if balanced else max(0, c - 1)
     if cfg.update_mode == "signed_bit":
         return (c + (1 if bit else -1)) % cfg.coherence_levels
-    # rolling: history-sensitive finite accumulator
     return ((c << 1) ^ nxt ^ bit) % cfg.coherence_levels
 
 
