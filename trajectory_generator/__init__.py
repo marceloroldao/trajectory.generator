@@ -108,6 +108,8 @@ from .dynamic_policy_universe import (
     validate as validate_dynamic_policy_trajectory,
 )
 from .coherence_memory_universe import (
+    BALANCED_COHERENCE_MEMORY_CONFIG,
+    LONG_FRONTIER_COHERENCE_MEMORY_CONFIG,
     DEFAULT_COHERENCE_MEMORY_CONFIG,
     POLICY_BANK as COHERENCE_MEMORY_POLICY_BANK,
     CoherenceMemoryConfig,
