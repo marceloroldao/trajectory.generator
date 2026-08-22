@@ -1,9 +1,12 @@
-"""Search small public coherence-memory dynamics.
+"""Exhaustive search of the public four-bucket coherence-memory dynamics.
 
-The search does not target phi or another named constant.  It compares exact
-63-bit frontier, finite-length entropy rate, policy diversity, and trajectory
-perturbation survival.  Results are exploratory and should be revalidated on
-independent seeds/metrics before freezing a default.
+The search does not target phi or another named constant. It evaluates all
+5^4 policy maps for each of the three public coherence-update modes and compares
+exact 63-bit frontier, finite-length entropy rate, policy diversity, and sampled
+trajectory perturbation survival.
+
+The scan is intentionally small enough to be exhaustive: 625 maps * 3 modes =
+1,875 public configurations.
 """
 
 from __future__ import annotations
@@ -16,7 +19,6 @@ import random
 from trajectory_generator.coherence_memory_universe import (
     CoherenceMemoryConfig,
     POLICY_BANK,
-    active_action,
     admissible_count,
     unrank_trajectory,
     validate,
@@ -34,12 +36,7 @@ def frontier(cfg: CoherenceMemoryConfig, max_steps: int = 600) -> int:
 
 
 def policy_diversity(cfg: CoherenceMemoryConfig) -> int:
-    used = set()
-    for state in range(8):
-        for phase in range(3):
-            for c in range(cfg.coherence_levels):
-                used.add(cfg.policy_map[c])
-    return len(used)
+    return len(set(cfg.policy_map))
 
 
 def flip_survival(cfg: CoherenceMemoryConfig, steps: int, samples: int, seed: int) -> float:
@@ -62,34 +59,37 @@ def flip_survival(cfg: CoherenceMemoryConfig, steps: int, samples: int, seed: in
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max-configs", type=int, default=500)
-    parser.add_argument("--seed", type=int, default=19)
-    parser.add_argument("--samples", type=int, default=128)
+    parser.add_argument("--seed", type=int, default=123)
+    parser.add_argument("--samples", type=int, default=64)
+    parser.add_argument("--min-rate", type=float, default=0.25)
+    parser.add_argument("--max-rate", type=float, default=0.50)
+    parser.add_argument("--top", type=int, default=40)
     args = parser.parse_args()
 
-    rng = random.Random(args.seed)
-    maps = list(itertools.product(range(len(POLICY_BANK)), repeat=4))
-    rng.shuffle(maps)
-    maps = maps[: args.max_configs]
-
     rows = []
+    maps = itertools.product(range(len(POLICY_BANK)), repeat=4)
     for mode in ("occupancy", "signed_bit", "rolling"):
-        for pmap in maps:
-            if len(set(pmap)) < 2:
-                continue
-            cfg = CoherenceMemoryConfig(policy_map=pmap, update_mode=mode)
+        for pmap in maps if mode == "occupancy" else itertools.product(range(len(POLICY_BANK)), repeat=4):
+            cfg = CoherenceMemoryConfig(policy_map=tuple(pmap), update_mode=mode)
             f = frontier(cfg)
             c300 = admissible_count(300, cfg)
             rate = math.log2(c300) / 300 if c300 > 0 else 0.0
-            # Avoid rewarding nearly deterministic universes.
-            if not 0.20 <= rate <= 0.60:
+            if not args.min_rate <= rate <= args.max_rate:
                 continue
             survival = flip_survival(cfg, min(64, f), args.samples, args.seed)
-            rows.append((f, survival, rate, policy_diversity(cfg), mode, pmap))
+            rows.append((f, survival, rate, policy_diversity(cfg), mode, tuple(pmap)))
 
+    # Frontier first, then perturbation survival. This keeps the capacity extreme
+    # visible while also exposing more balanced Pareto candidates.
     rows.sort(reverse=True)
     print("frontier  flip_survival  rate300  policies  mode        policy_map")
-    for row in rows[:30]:
+    for row in rows[: args.top]:
+        print(f"{row[0]:8d}  {row[1]:13.4f}  {row[2]:7.4f}  {row[3]:8d}  {row[4]:10s}  {row[5]}")
+
+    print("\nBest perturbation survival among configs that beat 184 steps:")
+    better = [row for row in rows if row[0] > 184]
+    better.sort(key=lambda row: (row[1], row[0]), reverse=True)
+    for row in better[: min(args.top, 20)]:
         print(f"{row[0]:8d}  {row[1]:13.4f}  {row[2]:7.4f}  {row[3]:8d}  {row[4]:10s}  {row[5]}")
 
 
