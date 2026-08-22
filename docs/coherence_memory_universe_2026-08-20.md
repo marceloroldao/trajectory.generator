@@ -1,6 +1,6 @@
 # Accumulated coherence-memory universe — 2026-08-20
 
-Status: pre-alpha experimental infrastructure
+Status: pre-alpha experimental result
 
 ## Objective
 
@@ -22,65 +22,109 @@ The decoder contract remains:
 
 plus the public configuration.
 
-## Motivation
+## Search space
 
-Previous experiments showed saturation when adding more selector layers based only on current history and phase. A fixed selector and a second-order dynamic selector both reached a moderate-entropy frontier around 184 steps. This suggests that additional selector hierarchy alone does not create new information capacity.
-
-The present experiment adds a qualitatively different variable: finite causal memory of the path.
-
-## Current implementation
-
-`trajectory_generator/coherence_memory_universe.py` provides:
-
-- a 3-bit local history;
-- a configurable finite coherence accumulator;
-- deterministic policy selection from the accumulator;
-- exact dynamic counting of admissible suffixes;
-- exact rank/unrank;
-- reversible final-state permutation;
-- exact decode from `(final_state, steps)`.
-
-Three public coherence updates are implemented:
+The implementation exposes five public selector policies and three deterministic coherence updates:
 
 ```text
-occupancy  -> saturating memory of balanced/extreme successor states
-signed_bit -> modular accumulated bit bias
-rolling    -> finite rolling path accumulator
+occupancy
+signed_bit
+rolling
 ```
 
-A small public policy bank is used only as a first search substrate. No golden ratio, plastic constant, tribonacci constant, or target spectral value is used in the coherence update.
-
-## Important status
-
-This commit intentionally does **not** claim a new frontier record.
-
-Preliminary exploration showed that poorly chosen coherence dynamics easily fall into two extremes:
+With four coherence buckets, every bucket chooses one of five policies. The complete search therefore contains
 
 ```text
-too free  -> short 63-bit frontier
-very rigid -> extremely long trajectories with near-zero information rate
+3 * 5^4 = 1,875
 ```
 
-The correct next step is therefore a reproducible search over coherence update + policy map, constrained to a moderate entropy-rate interval and evaluated jointly by:
+configurations.
 
-- exact 63-bit frontier;
-- finite-length entropy rate;
-- perturbation survival;
-- number of active policies/laws;
-- occupancy/mixing diagnostics.
+The exhaustive scan does not target phi or any named spectral constant. Configurations are evaluated by exact 63-bit frontier, finite-length information rate, and sampled one-bit perturbation survival.
 
-The search harness is in:
+## New balanced result
+
+The strongest configuration found that improves the prior 184-step moderate-entropy baseline without sacrificing its approximate perturbation tolerance is:
 
 ```text
-experiments/coherence_memory_search.py
+update_mode = rolling
+policy_map  = (1, 3, 4, 0)
 ```
 
-## Scientific interpretation
+Exact counts:
 
-The new variable should not be interpreted as a hidden storage channel. If it is not derivable from the recovered prefix during decoding, the construction is invalid for this project's primary objective.
+```text
+187 steps -> 8,070,450,532,247,928,961 admissible trajectories
+188 steps -> 16,140,901,064,495,857,795 admissible trajectories
+```
 
-The useful question is narrower:
+Therefore the exact 63-bit frontier is:
 
-> Does a small deterministic causal memory change the admissible trajectory geometry enough to improve the capacity/robustness Pareto frontier while remaining exactly decodable from the final address and step count?
+```text
+187 steps
+```
 
-Until the scan is completed and independently checked, the answer remains open.
+At 300 steps the finite-length rate is approximately:
+
+```text
+0.3360245 bit/step
+```
+
+A fixed-seed sample of 1,024 admissible 64-step trajectories, with all 64 single-bit flips tested, gave approximately:
+
+```text
+32.80% perturbation survival
+```
+
+The configuration visited 3 policy profiles and 12 distinct selected laws in that sample.
+
+This is a small but real Pareto improvement over the previous 184-step balanced policy universe, whose sampled perturbation survival was about 33%.
+
+## Capacity-oriented extreme
+
+The same exhaustive scan also found a much longer configuration:
+
+```text
+update_mode = signed_bit
+policy_map  = (4, 0, 2, 1)
+```
+
+Exact counts:
+
+```text
+244 steps -> 8,887,676,923,343,977,346 admissible trajectories
+245 steps -> 14,225,417,450,507,601,237 admissible trajectories
+```
+
+with finite-length rate near:
+
+```text
+0.2570568 bit/step
+```
+
+However, a 1,024-trajectory perturbation sample gave only about:
+
+```text
+1.31% one-bit survival
+```
+
+so this profile is treated as a capacity extreme rather than the default balanced universe.
+
+## Interpretation
+
+Adding a small causal memory does change the Pareto surface. It does not create a free storage channel: the coherence bucket is entirely derivable from the recovered prefix and is included in the dynamic programming state during exact rank/unrank.
+
+The main result is therefore narrower:
+
+> A deterministic finite memory of the trajectory can alter the geometry of the admissible family enough to improve the capacity/robustness Pareto frontier while preserving exact decode from `(final_state, steps)`.
+
+The improvement is modest in the balanced regime (184 -> 187 steps), while the long-frontier regime reaches 244 steps only by becoming highly fragile. This supports the recurring trade-off observed throughout the project: longer addressable trajectories require lower independent information rate and/or greater structural rigidity.
+
+## Reproduction
+
+```bash
+python experiments/coherence_memory_search.py --samples 64 --seed 123
+python -m unittest tests.test_coherence_memory_universe -v
+```
+
+For higher-confidence perturbation estimates, increase `--samples`.
