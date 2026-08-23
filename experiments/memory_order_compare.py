@@ -1,7 +1,5 @@
 """Controlled comparison of local memory orders 2, 3, and 4.
 
-Why a fixed canonical bank?
-
 The complete rule space has size 3^(2^m):
 
     m=2 -> 81
@@ -10,17 +8,21 @@ The complete rule space has size 3^(2^m):
 
 An exhaustive all-law comparison therefore stops being practical at memory 4.
 This experiment uses the same deterministic canonical bank size at each memory
-order so that memory length can be varied without also changing the number of
-candidate laws by orders of magnitude.
+order so that memory length can be varied without also changing candidate-bank
+size by orders of magnitude.
 
-This is a controlled ablation, not a replacement for the exhaustive memory-2
-and memory-3 scans already in the repository.
+Important: a common fixed bank/selector can become degenerate at a particular
+memory order.  Therefore this script reports not only frontier but also finite
+rate, admissible count at 64 steps, and sampled one-bit perturbation survival.
+A very long/non-crossing frontier with near-zero rate is *not* treated as an
+advantage.
 """
 
 from __future__ import annotations
 
 import argparse
 import math
+import random
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -40,12 +42,7 @@ def _mix64(x: int) -> int:
 
 
 def canonical_rule(memory: int, rule_id: int, seed: int) -> tuple[int, ...]:
-    states = 1 << memory
-    out = []
-    for s in range(states):
-        z = _mix64(seed ^ (memory << 48) ^ (rule_id << 16) ^ s)
-        out.append(z % 3)
-    return tuple(out)
+    return tuple(_mix64(seed ^ (memory << 48) ^ (rule_id << 16) ^ s) % 3 for s in range(1 << memory))
 
 
 def canonical_bank(memory: int, bank_size: int, seed: int) -> tuple[tuple[int, ...], ...]:
@@ -80,7 +77,6 @@ def rule_features(rule: tuple[int, ...], memory: int) -> tuple[int, int, int, in
     return freedom_balance, force_symmetry, balanced_forced, len(covered)
 
 
-# Same feature semantics as the memory-3 policy experiments, generalized.
 POLICIES: tuple[tuple[int, ...], ...] = (
     (0, 1, 3, 3, 0, 1, 0, 3, 0),
     (3, 3, 0, 3, 1, 2, 2, 0, 1),
@@ -104,7 +100,6 @@ class Config:
 def build(cfg: Config):
     bank = canonical_bank(cfg.memory, cfg.bank_size, cfg.seed)
     globals_ = tuple(rule_features(r, cfg.memory) for r in bank)
-    mask = (1 << cfg.memory) - 1
     center = cfg.memory / 2.0
 
     def initial_c(state: int) -> int:
@@ -155,22 +150,21 @@ def build(cfg: Config):
         return best_i
 
     def action(state: int, t: int, c: int) -> int:
-        pidx = cfg.policy_map[c]
-        return bank[selected(state, t % 3, pidx)][state]
+        return bank[selected(state, t % 3, cfg.policy_map[c])][state]
 
     @lru_cache(maxsize=None)
     def suffix(state: int, c: int, t: int, remaining: int) -> int:
         if remaining == 0:
             return 1
-        total = 0
-        for b in allowed(action(state, t, c)):
-            total += suffix(
+        return sum(
+            suffix(
                 next_state(state, b, cfg.memory),
                 update_c(c, state, b),
                 t + 1,
                 remaining - 1,
             )
-        return total
+            for b in allowed(action(state, t, c))
+        )
 
     def count(steps: int) -> int:
         if steps <= cfg.memory:
@@ -178,32 +172,95 @@ def build(cfg: Config):
         rem = steps - cfg.memory
         return sum(suffix(s, initial_c(s), cfg.memory, rem) for s in range(1 << cfg.memory))
 
-    return count
+    def validate(bits: list[int]) -> bool:
+        if len(bits) <= cfg.memory:
+            return True
+        state = 0
+        for b in bits[:cfg.memory]:
+            state = (state << 1) | b
+        c = initial_c(state)
+        for t, bit in enumerate(bits[cfg.memory:], start=cfg.memory):
+            if bit not in allowed(action(state, t, c)):
+                return False
+            c = update_c(c, state, bit)
+            state = next_state(state, bit, cfg.memory)
+        return True
+
+    def unrank(rank: int, steps: int) -> list[int]:
+        if steps <= cfg.memory:
+            return [((rank >> (steps - 1 - i)) & 1) for i in range(steps)] if steps else []
+        rem = steps - cfg.memory
+        prefix = None
+        for s in range(1 << cfg.memory):
+            n = suffix(s, initial_c(s), cfg.memory, rem)
+            if rank < n:
+                prefix = s
+                break
+            rank -= n
+        assert prefix is not None
+        bits = [((prefix >> (cfg.memory - 1 - i)) & 1) for i in range(cfg.memory)]
+        state = prefix
+        c = initial_c(state)
+        for t in range(cfg.memory, steps):
+            rem_after = steps - t - 1
+            for bit in allowed(action(state, t, c)):
+                ns = next_state(state, bit, cfg.memory)
+                nc = update_c(c, state, bit)
+                n = suffix(ns, nc, t + 1, rem_after)
+                if rank < n:
+                    bits.append(bit)
+                    state, c = ns, nc
+                    break
+                rank -= n
+        return bits
+
+    return count, validate, unrank
 
 
-def frontier(count, width: int, max_steps: int = 600) -> int:
+def frontier(count, width: int, max_steps: int = 5000) -> tuple[int, bool]:
     limit = 1 << width
+    last = 0
     for n in range(max_steps + 1):
         if count(n) > limit:
-            return n - 1
-    return max_steps
+            return n - 1, True
+        last = n
+    return last, False
+
+
+def flip_survival(validate, unrank, total: int, steps: int, samples: int, seed: int) -> float:
+    if total <= 0:
+        return 0.0
+    rng = random.Random(seed)
+    tested = survived = 0
+    for _ in range(min(samples, total)):
+        bits = unrank(rng.randrange(total), steps)
+        for pos in range(steps):
+            trial = bits.copy()
+            trial[pos] ^= 1
+            tested += 1
+            survived += int(validate(trial))
+    return survived / tested if tested else 0.0
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bank-size", type=int, default=256)
     ap.add_argument("--seed", type=int, default=0xC0FFEE)
-    ap.add_argument("--max-steps", type=int, default=600)
+    ap.add_argument("--max-steps", type=int, default=5000)
+    ap.add_argument("--samples", type=int, default=512)
     args = ap.parse_args()
 
-    print("memory bank frontier63 rate300")
+    print("memory bank frontier crossed rate300 count64 flip64")
     for memory in (2, 3, 4):
         cfg = Config(memory=memory, bank_size=args.bank_size, seed=args.seed)
-        count = build(cfg)
-        f = frontier(count, cfg.width, args.max_steps)
+        count, validate, unrank = build(cfg)
+        f, crossed = frontier(count, cfg.width, args.max_steps)
         c300 = count(300)
         rate = math.log2(c300) / 300 if c300 else 0.0
-        print(f"{memory:6d} {args.bank_size:4d} {f:10d} {rate:7.4f}")
+        c64 = count(64)
+        survival = flip_survival(validate, unrank, c64, 64, args.samples, args.seed)
+        marker = str(f) if crossed else f">={f}"
+        print(f"{memory:6d} {args.bank_size:4d} {marker:>8s} {str(crossed):>7s} {rate:7.4f} {c64:8d} {survival:7.4f}")
 
 
 if __name__ == "__main__":
