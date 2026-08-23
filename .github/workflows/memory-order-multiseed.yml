@@ -1,0 +1,28 @@
+name: memory-order-multiseed
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'experiments/memory_order_compare.py'
+      - 'experiments/memory_order_multiseed.py'
+      - '.github/workflows/memory-order-multiseed.yml'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run controlled multi-seed memory-order benchmark
+        run: |
+          python experiments/memory_order_multiseed.py \
+            --bank-size 256 \
+            --seeds 8 \
+            --max-steps 1000 \
+            --samples 128 \
+            --base-seed 12648430
