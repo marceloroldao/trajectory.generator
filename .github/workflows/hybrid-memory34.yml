@@ -1,0 +1,30 @@
+name: hybrid-memory34-search
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'experiments/hybrid_memory34_search.py'
+      - 'experiments/memory_order_compare.py'
+      - '.github/workflows/hybrid-memory34.yml'
+  workflow_dispatch:
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Search hybrid memory-3/4 critical coherence buckets
+        run: |
+          python experiments/hybrid_memory34_search.py \
+            --bank-size 256 \
+            --seed 12648430 \
+            --max-steps 1000 \
+            --min-rate 0.20 \
+            --max-rate 0.50 \
+            --top 42 \
+            --policy-map 1 3 4 0
