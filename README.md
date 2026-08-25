@@ -167,9 +167,9 @@ See `docs/coherence_memory_universe_2026-08-20.md`.
 
 ### 13. Controlled memory-order comparison
 
-`experiments/memory_order_compare.py`
+`experiments/memory_order_compare.py` and `experiments/memory_order_multiseed.py`
 
-The next ablation compares local history orders 2, 3, and 4 while holding the candidate-law-bank size fixed. This is necessary because the complete rule spaces grow as:
+Local history orders 2, 3, and 4 were compared while holding the candidate-law-bank size fixed. This is necessary because the complete rule spaces grow as:
 
 ```text
 memory 2 -> 81 laws
@@ -177,9 +177,34 @@ memory 3 -> 6,561 laws
 memory 4 -> 43,046,721 laws
 ```
 
-The benchmark therefore uses the same deterministic canonical bank size at each memory order and keeps selector semantics, coherence buckets, period, address width, and coherence policy fixed. It is a controlled structural comparison, not a replacement for the exhaustive memory-2 / memory-3 scans.
+Across eight deterministic canonical banks, no monotonic relation of the form `more local memory -> better universe` was observed. Memory 4 explores a wider range of entropy/frontier regimes, but remains much more fragile in the tested sample. Memory 3 is the only order that repeatedly reproduced the balanced region near:
 
-See `docs/memory_order_comparison_2026-08-22.md`.
+```text
+frontier = 187
+rate300 ~= 0.334 .. 0.336 bit/step
+one-bit survival ~= 31 .. 33%
+```
+
+See `docs/memory_order_multiseed_2026-08-22.md`.
+
+### 14. Hybrid memory 3<->4 experiment
+
+`experiments/hybrid_memory34_search.py`
+
+The machine always carries four recent bits but exposes memory-4 to the active grammar only when the reconstructed coherence bucket belongs to a public critical set. No switch history is stored.
+
+The hybrid can extend the frontier, but does not improve the balanced Pareto point. Representative results include:
+
+```text
+286 steps, rate300 ~= 0.21964, one-bit survival ~= 2.02%
+247 steps, rate300 ~= 0.25009, one-bit survival ~= 2.51%
+234 steps, rate300 ~= 0.26653, one-bit survival ~= 3.99%
+206 steps, rate300 ~= 0.30006, one-bit survival ~= 5.22%
+```
+
+All are much more fragile than the memory-3 balanced reference at 187 steps and ~32.8% one-bit survival. The hybrid is therefore preserved as a negative result and is not promoted into the public codec API.
+
+See `docs/hybrid_memory34_2026-08-24.md`.
 
 ## Fundamental limit
 
@@ -203,11 +228,13 @@ H_adm(n) <= w.
 
 The current target is a **stable endogenous computational universe** in which state, finite causal memory, policy, law, and transition all participate while every adaptive choice remains recoverable from the public dynamics.
 
-The coherence-memory scan is the first evidence that a new causal state variable can move the Pareto surface rather than merely add selector complexity. The immediate next test is whether that effect survives a controlled change in local memory order from 2 to 3 to 4. Only after that ablation should a larger-memory architecture be promoted into the core API.
+The latest ablations show that neither simply increasing local history nor switching adaptively between memory orders preserves the balanced robustness regime. The next experiments should therefore search for a causal variable that summarizes **trajectory relation or phase consistency**, rather than exposing more raw past bits. A useful candidate must improve the capacity/robustness Pareto surface, not frontier alone.
 
 ## Quick start
 
 ```bash
+python experiments/hybrid_memory34_search.py --bank-size 256 --seed 12648430
+python experiments/memory_order_multiseed.py --bank-size 256 --seeds 8 --base-seed 12648430
 python experiments/memory_order_compare.py --bank-size 256 --seed 12648430
 python experiments/coherence_memory_search.py --samples 64 --seed 123
 python experiments/dynamic_policy_search_memory3.py
