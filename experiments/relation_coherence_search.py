@@ -1,7 +1,7 @@
 """Search causal coherence variables built from transition relations.
 
 Instead of exposing more raw past bits, this experiment carries a four-bucket
-causal variable derived from relations between consecutive transitions.  The
+causal variable derived from relations between consecutive transitions. The
 variable is regenerated from the recovered prefix and is not side metadata.
 
 Three update modes are scanned over all nontrivial four-bucket policy maps:
@@ -19,16 +19,9 @@ from __future__ import annotations
 
 import itertools
 import math
-from functools import lru_cache
 
 from trajectory_generator.policy_universe import (
     ALL_RULES,
-    POLICY_BANK if False else BALANCED_POLICY_WEIGHTS,  # type: ignore
-)
-
-# This file intentionally reuses the public policy feature semantics by importing
-# concrete helpers from policy_universe.  No target algebraic constant is used.
-from trajectory_generator.policy_universe import (
     _allowed,
     _feature_vector,
     _next_state,
