@@ -206,6 +206,35 @@ All are much more fragile than the memory-3 balanced reference at 187 steps and 
 
 See `docs/hybrid_memory34_2026-08-24.md`.
 
+### 15. Recurrent orbit core and information clock
+
+`experiments/recurrent_orbit_core.py` and `experiments/information_clock_macrograph.py`
+
+A topological transition-state candidate with frontier around 221 steps has a dominant recurrent core of only 14 phase-lifted causal states. Inside that core there are just two states with more than one internal successor.
+
+Collapsing deterministic flights between those two branch states produces a two-state variable-length macrograph with four macro edges:
+
+```text
+A -> B : 1 physical step
+A -> A : 12 physical steps
+B -> A : 2 physical steps
+B -> A : 5 physical steps
+```
+
+The macrograph exactly reproduces the dominant physical-time growth factor through
+
+```text
+lambda^12 - lambda^9 - lambda^6 - 1 = 0
+lambda ~= 1.206189700118
+log2(lambda) ~= 0.270456820917 bit / physical step
+```
+
+Under the maximal-entropy path measure, one branch event spans about 2.59856 physical steps on average and carries about 0.70280 bit of entropy. Their ratio returns the same physical-time information rate.
+
+This gives the project an explicit distinction between physical time `t` and information-event time `k`: most intermediate transitions are deterministic consequences of the public dynamics; entropy enters at branch events.
+
+See `docs/recurrent_orbit_core_2026-09-02.md` and `docs/information_clock_macrograph_2026-09-02.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -226,13 +255,15 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target is a **stable endogenous computational universe** in which state, finite causal memory, policy, law, and transition all participate while every adaptive choice remains recoverable from the public dynamics.
+The current target is a **stable endogenous computational universe** in which state, finite causal memory, policy, law, transition, and recurrent orbit structure all participate while every adaptive choice remains recoverable from the public dynamics.
 
-The latest ablations show that neither simply increasing local history nor switching adaptively between memory orders preserves the balanced robustness regime. The next experiments should therefore search for a causal variable that summarizes **trajectory relation or phase consistency**, rather than exposing more raw past bits. A useful candidate must improve the capacity/robustness Pareto surface, not frontier alone.
+The strongest new structural result is that the dominant recurrent language can be condensed to entropy-bearing branch events plus deterministic flights without changing its asymptotic information rate. The next experiment should turn that information clock into an operational variable-length macro-event rank/unrank codec and verify full regeneration of recurrent-basin trajectories from public physical length and a final address.
 
 ## Quick start
 
 ```bash
+python experiments/information_clock_macrograph.py
+python experiments/recurrent_orbit_core.py
 python experiments/hybrid_memory34_search.py --bank-size 256 --seed 12648430
 python experiments/memory_order_multiseed.py --bank-size 256 --seeds 8 --base-seed 12648430
 python experiments/memory_order_compare.py --bank-size 256 --seed 12648430
