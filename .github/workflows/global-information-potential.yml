@@ -22,4 +22,6 @@ jobs:
       - name: Install numpy
         run: python -m pip install numpy
       - name: Run global potential diagnostic
+        env:
+          PYTHONPATH: .
         run: python experiments/global_information_potential.py
