@@ -5,6 +5,7 @@ on:
     paths:
       - 'experiments/local_causal_coordinate.py'
       - 'experiments/local_causal_reversibility.py'
+      - 'experiments/binary_reversible_edge_label.py'
       - 'experiments/causal_coordinate_refinement.py'
       - 'experiments/basin_potential_coordinate.py'
       - '.github/workflows/local-causal-coordinate.yml'
@@ -27,3 +28,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/local_causal_reversibility.py
+      - name: Construct binary reversible edge label
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/binary_reversible_edge_label.py
