@@ -13,6 +13,7 @@ on:
       - 'experiments/minimal_geometric_state.py'
       - 'experiments/compact_geometric_coordinate.py'
       - 'experiments/affine_geometric_dynamics.py'
+      - 'experiments/nonlinear_core.py'
       - 'experiments/causal_coordinate_refinement.py'
       - 'experiments/basin_potential_coordinate.py'
       - '.github/workflows/local-causal-coordinate.yml'
@@ -67,3 +68,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/affine_geometric_dynamics.py
+      - name: Isolate nonlinear reversible core
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/nonlinear_core.py
