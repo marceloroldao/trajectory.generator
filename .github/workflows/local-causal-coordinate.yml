@@ -20,5 +20,5 @@ jobs:
       - run: pip install numpy
       - name: Test local causal closure
         env:
-          PYTHONPATH: ${{ github.workspace }}/experiments
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/local_causal_coordinate.py
