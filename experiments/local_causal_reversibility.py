@@ -4,9 +4,9 @@ Forward closure already showed:
 
     (C_t, next_history_lsb) -> C_{t+1}
 
-is single-valued on the 37-state operational graph.  Here we scan reverse keys
-and coarsenings of the topology relation to find the smallest local relation
-that makes
+is single-valued on the 37-state operational graph.  Here we scan reverse keys,
+coarsenings of the topology relation, and an exact search over partitions of the
+8 topology-delta symbols to find the smallest relation alphabet that makes
 
     (C_{t+1}, local_relation) -> C_t
 
@@ -15,6 +15,7 @@ single-valued, without supplying the raw previous-state tuple.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from itertools import product
 
 from local_causal_coordinate import operational_coordinate, edge_records
 
@@ -32,8 +33,27 @@ def ambiguity_from_key(records, key_fn):
     }
 
 
-def ambiguity(records, fields):
-    return ambiguity_from_key(records, lambda r: tuple(r[f] for f in fields))
+def mapping_closes(records, mapping):
+    table = defaultdict(set)
+    for r in records:
+        table[(r["cn"], mapping[r["topology_delta"]])].add(r["c"])
+        if len(table[(r["cn"], mapping[r["topology_delta"]])]) > 1:
+            return False
+    return True
+
+
+def minimal_partition(records):
+    symbols = tuple(sorted({r["topology_delta"] for r in records}))
+    # Break label symmetry by fixing the first symbol to class 0.
+    for k in range(1, len(symbols) + 1):
+        for tail in product(range(k), repeat=len(symbols) - 1):
+            labels = (0,) + tail
+            if len(set(labels)) != k:
+                continue
+            mapping = dict(zip(symbols, labels))
+            if mapping_closes(records, mapping):
+                return k, mapping
+    raise RuntimeError("no partition found")
 
 
 def analyze():
@@ -72,6 +92,7 @@ def analyze():
         name: ambiguity_from_key(records, fn)
         for name, fn in reverse_candidates.items()
     }
+    min_k, min_mapping = minimal_partition(records)
 
     return {
         "reachable_states": len(reachable),
@@ -81,6 +102,8 @@ def analyze():
         "forward_closed": forward_ambiguous == 0,
         "topology_delta_values": dict(sorted(topology_values.items())),
         "topology_delta_alphabet": len(topology_values),
+        "minimal_reverse_relation_alphabet": min_k,
+        "minimal_reverse_relation_mapping": min_mapping,
         "reverse_tests": results,
     }
 
@@ -94,6 +117,8 @@ def main():
     print("forward_closed", result["forward_closed"])
     print("topology_delta_values", result["topology_delta_values"])
     print("topology_delta_alphabet", result["topology_delta_alphabet"])
+    print("minimal_reverse_relation_alphabet", result["minimal_reverse_relation_alphabet"])
+    print("minimal_reverse_relation_mapping", result["minimal_reverse_relation_mapping"])
     for name, row in result["reverse_tests"].items():
         print(name, row)
 
