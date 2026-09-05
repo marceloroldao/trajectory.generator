@@ -3,8 +3,9 @@
 Because reversible partition refinement proves that no two operational causal
 states can be merged, any exact binary coordinate needs at least ceil(log2 37)=6
 bits.  We search semantic/state-local Boolean features for an injective 6-bit
-coordinate, then test whether forward and reverse coordinate updates under the
-binary edge label z admit low-degree ANF laws.
+coordinate, then solve the exact forward and reverse update laws under the
+binary edge label z. With 6 coordinate bits plus z there are 7 Boolean inputs,
+so ANF degree 7 is complete on the observed domain.
 """
 from __future__ import annotations
 
@@ -20,7 +21,7 @@ def parity(x: int) -> int:
 
 def state_features(node):
     h, q, p = map(int, node)
-    f = {
+    return {
         'h0': (h >> 0) & 1,
         'h1': (h >> 1) & 1,
         'h2': (h >> 2) & 1,
@@ -38,30 +39,27 @@ def state_features(node):
         'h_weight_hi': int(h.bit_count() >= 2),
         'q_weight_hi': int(q.bit_count() >= 2),
     }
-    return f
 
 
 def unique_nodes(records):
-    nodes = {r['src'] for r in records} | {r['dst'] for r in records}
-    return sorted(nodes)
+    return sorted({r['src'] for r in records} | {r['dst'] for r in records})
 
 
 def injective_subset(nodes, names):
-    seen = {}
+    seen = set()
     for n in nodes:
         f = state_features(n)
         key = tuple(f[x] for x in names)
         if key in seen:
             return False
-        seen[key] = n
+        seen.add(key)
     return True
 
 
 def find_min_coordinate(nodes):
     names = sorted(state_features(nodes[0]))
-    lower = 6
     exact = []
-    for k in range(lower, len(names)+1):
+    for k in range(6, len(names)+1):
         for sub in combinations(names, k):
             if injective_subset(nodes, sub):
                 exact.append(sub)
@@ -70,7 +68,7 @@ def find_min_coordinate(nodes):
     return names, []
 
 
-def anf_law(rows, input_names, outputs, max_degree=3):
+def anf_law(rows, input_names, outputs, max_degree=7):
     vectors = [[r[n] for n in input_names] for r in rows]
     out = []
     for out_name in outputs:
@@ -91,8 +89,7 @@ def anf_law(rows, input_names, outputs, max_degree=3):
 
 
 def transition_laws(records, coord):
-    rows_f = []
-    rows_r = []
+    rows_f, rows_r = [], []
     for r in records:
         sf = state_features(r['src']); df = state_features(r['dst'])
         rowf = {f'g{i}': sf[n] for i,n in enumerate(coord)}
@@ -122,16 +119,17 @@ def analyze():
     evaluated = []
     for coord in exact:
         fw, rv = transition_laws(records, coord)
+        fs, rs = score_laws(fw), score_laws(rv)
         evaluated.append({
             'coordinate': list(coord),
-            'forward_score': score_laws(fw),
-            'reverse_score': score_laws(rv),
+            'forward_score': fs,
+            'reverse_score': rs,
+            'max_degree': max(fs[0], rs[0]),
+            'total_terms': fs[1] + rs[1],
             'forward': fw,
             'reverse': rv,
         })
-    evaluated.sort(key=lambda x: (max(x['forward_score'][0],x['reverse_score'][0]),
-                                  x['forward_score'][1]+x['reverse_score'][1],
-                                  x['coordinate']))
+    evaluated.sort(key=lambda x: (x['max_degree'], x['total_terms'], x['coordinate']))
     return {
         'states': len(nodes),
         'information_lower_bound_bits': 6,
