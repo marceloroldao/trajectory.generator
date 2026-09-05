@@ -11,6 +11,7 @@ on:
       - 'experiments/minimal_local_label_variables.py'
       - 'experiments/geometric_invariant_label_search.py'
       - 'experiments/minimal_geometric_state.py'
+      - 'experiments/compact_geometric_coordinate.py'
       - 'experiments/causal_coordinate_refinement.py'
       - 'experiments/basin_potential_coordinate.py'
       - '.github/workflows/local-causal-coordinate.yml'
@@ -57,3 +58,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/minimal_geometric_state.py
+      - name: Search compact six-bit geometric coordinate
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/compact_geometric_coordinate.py
