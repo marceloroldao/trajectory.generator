@@ -5,8 +5,8 @@ Forward closure already showed:
     (C_t, next_history_lsb) -> C_{t+1}
 
 is single-valued on the 37-state operational graph.  Here we scan reverse keys
-of increasing richness to determine the smallest relational observation that
-makes
+and coarsenings of the topology relation to find the smallest local relation
+that makes
 
     (C_{t+1}, local_relation) -> C_t
 
@@ -14,16 +14,15 @@ single-valued, without supplying the raw previous-state tuple.
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from local_causal_coordinate import operational_coordinate, edge_records
 
 
-def ambiguity(records, fields):
+def ambiguity_from_key(records, key_fn):
     table = defaultdict(set)
     for r in records:
-        key = tuple(r[f] for f in fields)
-        table[key].add(r["c"])
+        table[key_fn(r)].add(r["c"])
     ambiguous = {k: v for k, v in table.items() if len(v) > 1}
     return {
         "keys": len(table),
@@ -31,6 +30,10 @@ def ambiguity(records, fields):
         "max_prev_classes": max((len(v) for v in table.values()), default=0),
         "closed": not ambiguous,
     }
+
+
+def ambiguity(records, fields):
+    return ambiguity_from_key(records, lambda r: tuple(r[f] for f in fields))
 
 
 def analyze():
@@ -43,22 +46,31 @@ def analyze():
     forward_ambiguous = sum(len(v) > 1 for v in forward.values())
 
     reverse_candidates = {
-        "Cnext_bit": ("cn", "next_history_lsb"),
-        "Cnext_ordinal": ("cn", "ordinal"),
-        "Cnext_history_delta": ("cn", "history_delta"),
-        "Cnext_topology_delta": ("cn", "topology_delta"),
-        "Cnext_relation": ("cn", "history_delta", "topology_delta"),
-        "Cnext_bit_history_delta": ("cn", "next_history_lsb", "history_delta"),
-        "Cnext_bit_topology_delta": ("cn", "next_history_lsb", "topology_delta"),
-        "Cnext_bit_relation": (
-            "cn", "next_history_lsb", "history_delta", "topology_delta"
+        "Cnext_bit": lambda r: (r["cn"], r["next_history_lsb"]),
+        "Cnext_ordinal": lambda r: (r["cn"], r["ordinal"]),
+        "Cnext_history_delta": lambda r: (r["cn"], r["history_delta"]),
+        "Cnext_topology_delta": lambda r: (r["cn"], r["topology_delta"]),
+        "Cnext_topology_changed": lambda r: (r["cn"], int(r["topology_delta"] != 0)),
+        "Cnext_topology_parity": lambda r: (r["cn"], r["topology_delta"] & 1),
+        "Cnext_topology_popcount": lambda r: (r["cn"], int(r["topology_delta"]).bit_count()),
+        "Cnext_bit_topology_changed": lambda r: (
+            r["cn"], r["next_history_lsb"], int(r["topology_delta"] != 0)
         ),
-        "Cnext_relation_phase": (
-            "cn", "history_delta", "topology_delta", "phase"
+        "Cnext_bit_topology_parity": lambda r: (
+            r["cn"], r["next_history_lsb"], r["topology_delta"] & 1
         ),
-        "Cnext_full_local_no_raw_prev": (
-            "cn", "next_history_lsb", "history_delta", "topology_delta", "phase"
+        "Cnext_bit_topology_popcount": lambda r: (
+            r["cn"], r["next_history_lsb"], int(r["topology_delta"]).bit_count()
         ),
+        "Cnext_relation": lambda r: (
+            r["cn"], r["history_delta"], r["topology_delta"]
+        ),
+    }
+
+    topology_values = Counter(r["topology_delta"] for r in records)
+    results = {
+        name: ambiguity_from_key(records, fn)
+        for name, fn in reverse_candidates.items()
     }
 
     return {
@@ -67,10 +79,9 @@ def analyze():
         "forward_keys": len(forward),
         "forward_ambiguous": forward_ambiguous,
         "forward_closed": forward_ambiguous == 0,
-        "reverse_tests": {
-            name: ambiguity(records, fields)
-            for name, fields in reverse_candidates.items()
-        },
+        "topology_delta_values": dict(sorted(topology_values.items())),
+        "topology_delta_alphabet": len(topology_values),
+        "reverse_tests": results,
     }
 
 
@@ -81,6 +92,8 @@ def main():
     print("forward_keys", result["forward_keys"])
     print("forward_ambiguous", result["forward_ambiguous"])
     print("forward_closed", result["forward_closed"])
+    print("topology_delta_values", result["topology_delta_values"])
+    print("topology_delta_alphabet", result["topology_delta_alphabet"])
     for name, row in result["reverse_tests"].items():
         print(name, row)
 
