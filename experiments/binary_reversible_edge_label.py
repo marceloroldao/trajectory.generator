@@ -3,20 +3,30 @@
 Treat the operational causal graph as a bipartite incidence graph: a left copy
 of each source causal class and a right copy of each destination causal class.
 A valid edge label must be unique among edges leaving the same source and among
-edges entering the same destination.  For a bipartite graph the edge chromatic
-number equals the maximum degree (Konig line-coloring theorem).  Here we test
-whether the 49 operational edges admit a 2-label coloring and whether that
-label also uniquely identifies the transition/data bit at either endpoint.
+edges entering the same destination. For a bipartite graph the edge chromatic
+number equals the maximum degree (Konig line-coloring theorem).
 
-This is a structural existence test.  A later experiment must determine whether
-the resulting label can be computed by a simple local formula rather than by a
-precomputed edge table.
+The construction below is canonicalized by sorting records and component starts,
+so the public binary label is reproducible across Python processes.
 """
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import defaultdict
 
 from local_causal_coordinate import operational_coordinate, edge_records
+
+
+def canonical_records():
+    reachable, coord = operational_coordinate()
+    records = edge_records(reachable, coord)
+    records = sorted(
+        records,
+        key=lambda r: (
+            r["c"], r["cn"], r["next_history_lsb"], r["history_delta"],
+            r["topology_delta"], r["phase"], r["ordinal"]
+        ),
+    )
+    return reachable, coord, records
 
 
 def build_incidence(records):
@@ -36,40 +46,43 @@ def binary_edge_coloring(records):
     if delta > 2:
         return None, max_out, max_in
 
-    # Incidence graph vertices are ('L', source_class) and ('R', dest_class).
     adjacency = defaultdict(list)
     for i, r in enumerate(records):
         u = ("L", r["c"])
         v = ("R", r["cn"])
         adjacency[u].append((v, i))
         adjacency[v].append((u, i))
+    for node in adjacency:
+        adjacency[node].sort(key=lambda pair: (repr(pair[0]), pair[1]))
 
     color = {}
-    # Every component of a graph of maximum degree <=2 is a path or cycle;
-    # alternate colors along each component's edges.
     seen_edges = set()
-    for start in list(adjacency):
+    for start in sorted(adjacency, key=repr):
         if all(e in seen_edges for _, e in adjacency[start]):
             continue
-        # Prefer an endpoint for paths; otherwise arbitrary node for cycles.
         component_nodes = set()
-        q = [start]
-        while q:
-            x = q.pop()
+        stack = [start]
+        while stack:
+            x = stack.pop()
             if x in component_nodes:
                 continue
             component_nodes.add(x)
             for y, _ in adjacency[x]:
-                q.append(y)
-        endpoints = [x for x in component_nodes if len(adjacency[x]) == 1]
-        current = endpoints[0] if endpoints else start
+                stack.append(y)
+        endpoints = sorted(
+            (x for x in component_nodes if len(adjacency[x]) == 1), key=repr
+        )
+        current = endpoints[0] if endpoints else min(component_nodes, key=repr)
         prev_edge = None
         next_color = 0
         while True:
-            options = [(n, e) for n, e in adjacency[current] if e != prev_edge and e not in seen_edges]
+            options = [
+                (n, e) for n, e in adjacency[current]
+                if e != prev_edge and e not in seen_edges
+            ]
             if not options:
                 break
-            nxt, edge = options[0]
+            nxt, edge = min(options, key=lambda pair: (pair[1], repr(pair[0])))
             color[edge] = next_color
             seen_edges.add(edge)
             next_color ^= 1
@@ -108,9 +121,21 @@ def closure_stats(records, labels):
     }
 
 
+def labeled_records():
+    reachable, coord, records = canonical_records()
+    labels, max_out, max_in = binary_edge_coloring(records)
+    if labels is None:
+        raise RuntimeError("operational graph requires more than two labels")
+    out = []
+    for i, rec in enumerate(records):
+        row = dict(rec)
+        row["label"] = labels[i]
+        out.append(row)
+    return reachable, coord, tuple(out), max_out, max_in
+
+
 def analyze():
-    reachable, coord = operational_coordinate()
-    records = edge_records(reachable, coord)
+    reachable, coord, records = canonical_records()
     labels, max_out, max_in = binary_edge_coloring(records)
     result = {
         "reachable_states": len(reachable),
