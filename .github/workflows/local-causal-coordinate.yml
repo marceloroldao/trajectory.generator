@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'experiments/local_causal_coordinate.py'
+      - 'experiments/local_causal_reversibility.py'
       - 'experiments/causal_coordinate_refinement.py'
       - 'experiments/basin_potential_coordinate.py'
       - '.github/workflows/local-causal-coordinate.yml'
@@ -22,3 +23,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/local_causal_coordinate.py
+      - name: Test bidirectional local reversibility
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/local_causal_reversibility.py
