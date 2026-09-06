@@ -7,6 +7,7 @@ on:
       - 'experiments/nonlinear_ablation_perturbations.py'
       - 'experiments/nonlinear_term_ablation.py'
       - 'experiments/nonlinear_leave_one_out.py'
+      - 'experiments/nonlinear_invariant_factorization.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -35,3 +36,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/nonlinear_leave_one_out.py
+      - name: Factor nonlinear core into composite invariants
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/nonlinear_invariant_factorization.py
