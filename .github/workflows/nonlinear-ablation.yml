@@ -5,6 +5,7 @@ on:
     paths:
       - 'experiments/nonlinear_ablation.py'
       - 'experiments/nonlinear_ablation_perturbations.py'
+      - 'experiments/nonlinear_term_ablation.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -25,3 +26,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/nonlinear_ablation_perturbations.py
+      - name: Exhaustively ablate nonlinear monomials
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/nonlinear_term_ablation.py
