@@ -15,6 +15,7 @@ on:
       - 'experiments/affine_geometric_dynamics.py'
       - 'experiments/nonlinear_core.py'
       - 'experiments/nonlinear_correction_support.py'
+      - 'experiments/nonlinear_gate_minimization.py'
       - 'experiments/causal_coordinate_refinement.py'
       - 'experiments/basin_potential_coordinate.py'
       - '.github/workflows/local-causal-coordinate.yml'
@@ -77,3 +78,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/nonlinear_correction_support.py
+      - name: Minimize nonlinear activation gate
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/nonlinear_gate_minimization.py
