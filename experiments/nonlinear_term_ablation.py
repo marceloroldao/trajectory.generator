@@ -1,22 +1,17 @@
-"""Exhaustively ablate the five nonlinear forward monomials in the balanced universe.
+"""Exhaustively ablate the five nonlinear forward monomials on the fixed operational manifold.
 
-The validated forward nonlinear channel is q0 with five nonlinear terms.  We keep
-its affine part fixed and evaluate all 2^5 subsets of nonlinear terms.  For each
-submachine we start from the same eight public initial states and measure:
+The exact ANF laws were learned only on the validated 37-state operational
+manifold.  Therefore this ablation never extrapolates them to arbitrary 6-bit
+states.  Candidate transitions that leave the validated manifold are rejected.
 
-- reachable states and labeled edges;
-- local reverse ambiguity under (G_next,z);
-- 63-bit frontier;
-- information-rate proxy log2(path_count[200])/200.
-
-This identifies which nonlinear interactions are responsible for entropy
-restriction versus reverse disambiguation.
+We keep the affine part of q0 fixed and evaluate all 2^5 subsets of nonlinear
+terms.  For every submachine we measure reachable admissible states, local
+reverse ambiguity, path growth, and the 63-bit frontier.
 """
 from __future__ import annotations
 
 import math
 from collections import defaultdict, deque
-from itertools import combinations
 
 from nonlinear_ablation import full_graph
 
@@ -59,12 +54,15 @@ def step(g, z, enabled):
     )
 
 
-def graph(initial, enabled):
+def graph(initial, enabled, admissible):
     seen=set(initial); q=deque(initial); edges={}
     while q:
         g=q.popleft(); outs=[]
         for z in (0,1):
-            ng=step(g,z,enabled); outs.append((z,ng))
+            ng=step(g,z,enabled)
+            if ng not in admissible:
+                continue
+            outs.append((z,ng))
             if ng not in seen:
                 seen.add(ng); q.append(ng)
         edges[g]=outs
@@ -88,55 +86,81 @@ def counts(edges, initial, max_steps=300):
     for _ in range(max_steps):
         nxt=defaultdict(int)
         for s,c in dist.items():
-            for _,d in edges[s]: nxt[d]+=c
+            for _,d in edges.get(s,()): nxt[d]+=c
         dist=nxt; out.append(sum(dist.values()))
     return out
 
 
 def frontier(c):
+    last_valid=0
     for i,n in enumerate(c):
-        if n > LIMIT: return i-1
-    return len(c)-1
+        if n == 0:
+            return i-1
+        if n > LIMIT:
+            return i-1
+        last_valid=i
+    return last_valid
 
 
-def run(enabled, initial):
-    e=graph(initial,enabled); c=counts(e,initial)
+def edge_set(edges):
+    return {(s,z,d) for s,outs in edges.items() for z,d in outs}
+
+
+def run(enabled, initial, admissible, reference_edges):
+    e=graph(initial,enabled,admissible); c=counts(e,initial)
     amb,maxp=reverse_ambiguity(e)
+    es=edge_set(e)
+    ref=edge_set(reference_edges)
+    rate = math.log2(c[200])/200 if c[200] else float('-inf')
     return {
         'enabled': tuple(sorted(enabled)),
         'terms': tuple(NONLINEAR[i] for i in sorted(enabled)),
         'states': len(e),
-        'edges': sum(len(v) for v in e.values()),
+        'edges': len(es),
         'reverse_ambiguous': amb,
         'max_reverse_preimages': maxp,
         'reversible': amb==0,
         'frontier': frontier(c),
-        'rate200': math.log2(c[200])/200,
+        'rate200': rate,
+        'edge_agreement': len(es & ref),
+        'missing_reference_edges': len(ref-es),
+        'extra_edges': len(es-ref),
+        'exact_reference_graph': es==ref,
     }
 
 
 def main():
-    _, initial = full_graph()
+    reference_edges, initial = full_graph()
+    admissible=set(reference_edges)
+    for outs in reference_edges.values():
+        for _,d in outs: admissible.add(d)
     rows=[]
     for mask in range(1<<len(NONLINEAR)):
         enabled={i for i in range(len(NONLINEAR)) if mask&(1<<i)}
-        rows.append(run(enabled,initial))
+        rows.append(run(enabled,initial,admissible,reference_edges))
     rows.sort(key=lambda r:(-r['frontier'], r['rate200'], len(r['enabled'])))
     print('nonlinear_terms', list(enumerate(NONLINEAR)))
     print('configs', len(rows))
+    print('full_mask', next(r for r in rows if len(r['enabled'])==5))
     print('top_by_frontier')
     for r in rows[:12]: print(r)
     rev=[r for r in rows if r['reversible']]
+    exact=[r for r in rows if r['exact_reference_graph']]
     print('summary', {
         'reversible_configs': len(rev),
-        'nonreversible_configs': len(rows)-len(rev),
-        'best_reversible': rev[0] if rev else None,
+        'exact_reference_configs': len(exact),
         'fewest_terms_reversible': min((len(r['enabled']) for r in rev), default=None),
+        'fewest_terms_exact_reference': min((len(r['enabled']) for r in exact), default=None),
     })
     if rev:
         m=min(len(r['enabled']) for r in rev)
         print('minimal_reversible_configs')
         for r in rev:
+            if len(r['enabled'])==m: print(r)
+    if exact:
+        m=min(len(r['enabled']) for r in exact)
+        print('minimal_exact_reference_configs')
+        for r in exact:
             if len(r['enabled'])==m: print(r)
 
 
