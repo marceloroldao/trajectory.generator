@@ -1,15 +1,12 @@
 """Derive the two nonlinear channels I and G directly from local geometric invariants.
 
-This removes the five original monomials as an intermediate representation.
-For the balanced universe we target:
+For the validated compact coordinate
+    G = (h1, orientation, phase0, phase1, q0, q1)
+we target the two composite nonlinear channels
     I = t0 ^ t1 ^ t3
-    G = t2 ^ t4
-using only the semantic invariants already defined in
-`geometric_invariant_label_search.py`.
-
-For each channel we search the smallest invariant subset that determines the
-channel exactly on all 49 operational transitions, then fit the lowest-degree
-ANF on a binary encoding of those invariant values.
+    Gc = t2 ^ t4
+and ask whether they can be computed directly from the semantic local
+invariants defined in `geometric_invariant_label_search.py`.
 """
 from __future__ import annotations
 
@@ -19,6 +16,8 @@ from binary_reversible_edge_label import labeled_records
 from compact_geometric_coordinate import state_features
 from geometric_invariant_label_search import invariants
 from local_label_formula_search import gf2_solve
+
+COORD = ('h1','orientation','phase0','phase1','q0','q1')
 
 
 def term_values(g):
@@ -33,9 +32,8 @@ def term_values(g):
 
 
 def targets(r):
-    names = ('history_bit1', 'orientation_match', 'phase0', 'phase1', 'topology0', 'topology1')
     sf = state_features(r['src'])
-    g = tuple(int(sf[n]) for n in names)
+    g = tuple(int(sf[n]) for n in COORD)
     t = term_values(g)
     return {'I': t[0] ^ t[1] ^ t[3], 'G': t[2] ^ t[4]}
 
@@ -55,8 +53,7 @@ def determines(records, subset, target):
 def encode_subset(records, subset):
     domains = {n: sorted({invariants(r)[n] for r in records}) for n in subset}
     widths = {n: max(1, (max(domains[n]) if domains[n] else 0).bit_length()) for n in subset}
-    names=[]
-    rows=[]
+    names=[]; rows=[]
     for n in subset:
         for b in range(widths[n]): names.append(f'{n}_b{b}')
     for r in records:
