@@ -9,22 +9,30 @@ using only the semantic invariants already defined in
 
 For each channel we search the smallest invariant subset that determines the
 channel exactly on all 49 operational transitions, then fit the lowest-degree
-ANF on one-hot/binary encoded invariant values.
+ANF on a binary encoding of those invariant values.
 """
 from __future__ import annotations
 
 from itertools import combinations
-from collections import defaultdict
 
 from binary_reversible_edge_label import labeled_records
 from compact_geometric_coordinate import state_features
 from geometric_invariant_label_search import invariants
-from nonlinear_term_ablation import term_values
 from local_label_formula_search import gf2_solve
 
 
+def term_values(g):
+    g0,g1,g2,g3,g4,g5 = map(int,g)
+    return (
+        g1 & g4,
+        g1 & g5,
+        g0 & g3 & g5,
+        g1 & g4 & g5,
+        g2 & g4 & g5,
+    )
+
+
 def targets(r):
-    # compact geometric coordinate order is fixed by the validated experiment
     names = ('history_bit1', 'orientation_match', 'phase0', 'phase1', 'topology0', 'topology1')
     sf = state_features(r['src'])
     g = tuple(int(sf[n]) for n in names)
@@ -45,7 +53,6 @@ def determines(records, subset, target):
 
 
 def encode_subset(records, subset):
-    # Encode each semantic invariant value in the minimum number of binary bits
     domains = {n: sorted({invariants(r)[n] for r in records}) for n in subset}
     widths = {n: max(1, (max(domains[n]) if domains[n] else 0).bit_length()) for n in subset}
     names=[]
