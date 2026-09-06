@@ -6,13 +6,9 @@ edge label z.
 
 We measure:
 - whether each labeled step remains bidirectionally reversible;
-- reachable geometric states/edges from the public initial set;
+- reachable geometric states/edges from the eight public initial states;
 - path-count growth and 63-bit frontier;
 - recurrent SCC structure and spectral growth.
-
-The ablated machine is defined on all 64 six-bit G values by the affine parts of
-the learned forward laws.  We keep only transitions with z in {0,1}; no extra
-metadata is introduced.
 """
 from __future__ import annotations
 
@@ -22,16 +18,10 @@ from collections import defaultdict, deque
 from binary_reversible_edge_label import labeled_records
 from compact_geometric_coordinate import state_features
 from nonlinear_correction_support import COORD
+from topological_transition_state import initial_topology
 
 LIMIT = 1 << 63
 
-# Exact forward affine part for best coordinate from compact_geometric_coordinate.py.
-# g'0=g0^g4
-# g'1=g0^g4^g5
-# g'2=1^g2^g3
-# g'3=g2
-# g'4=g2^g3^g5^z   (nonlinear terms removed)
-# g'5=g4
 
 def encode_g(node):
     f = state_features(node)
@@ -56,7 +46,7 @@ def full_graph():
     edges = defaultdict(list)
     for r in records:
         edges[g_of[r['src']]].append((int(r['label']), g_of[r['dst']]))
-    initial_nodes = sorted(n for n in reachable if n[2] == 0)
+    initial_nodes = tuple((s, initial_topology(s), 0) for s in range(8))
     initial = tuple(g_of[n] for n in initial_nodes)
     return dict(edges), initial
 
@@ -104,11 +94,10 @@ def path_counts(edges, initial, max_steps=400):
 
 
 def frontier(counts):
-    last = len(counts)-1
     for i,n in enumerate(counts):
         if n > LIMIT:
             return i-1
-    return last
+    return len(counts)-1
 
 
 def sccs(edges):
@@ -157,8 +146,7 @@ def recurrent_profile(edges):
     for c in comps:
         internal=sum(1 for v in c for w in adj[v] if w in c)
         exits=sum(1 for v in c for w in adj[v] if w not in c)
-        lam=spectral_radius(adj,c)
-        rows.append((lam,len(c),internal,exits))
+        rows.append((spectral_radius(adj,c),len(c),internal,exits))
     rows.sort(reverse=True)
     return rows[:5]
 
@@ -166,7 +154,6 @@ def recurrent_profile(edges):
 def summarize(name, edges, initial):
     counts=path_counts(edges,initial)
     fr=frontier(counts)
-    rp=recurrent_profile(edges)
     return {
         'name':name,
         'states':len(edges),
@@ -176,7 +163,7 @@ def summarize(name, edges, initial):
         'count_at_frontier':counts[fr],
         'count_next':counts[fr+1] if fr+1<len(counts) else None,
         'rate_200': math.log2(counts[200])/200 if counts[200] else float('-inf'),
-        'top_recurrent':rp,
+        'top_recurrent':recurrent_profile(edges),
     }
 
 
@@ -186,7 +173,6 @@ def main():
     print('initial_states', len(set(initial)))
     print('full', summarize('full',full,initial))
     print('linear_only', summarize('linear_only',lin,initial))
-    # exact edge agreement on the original operational domain
     same=0; total=0
     for src, outs in full.items():
         for z,dst in outs:
