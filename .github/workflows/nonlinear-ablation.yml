@@ -8,6 +8,7 @@ on:
       - 'experiments/nonlinear_term_ablation.py'
       - 'experiments/nonlinear_leave_one_out.py'
       - 'experiments/nonlinear_invariant_factorization.py'
+      - 'experiments/nonlinear_two_channel_ablation.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -40,3 +41,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/nonlinear_invariant_factorization.py
+      - name: Ablate identity and geometry channels
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/nonlinear_two_channel_ablation.py
