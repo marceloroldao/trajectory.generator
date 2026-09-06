@@ -9,6 +9,7 @@ on:
       - 'experiments/nonlinear_leave_one_out.py'
       - 'experiments/nonlinear_invariant_factorization.py'
       - 'experiments/nonlinear_two_channel_ablation.py'
+      - 'experiments/two_channel_geometric_laws.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -45,3 +46,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/nonlinear_two_channel_ablation.py
+      - name: Derive I and G from geometric invariants
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/two_channel_geometric_laws.py
