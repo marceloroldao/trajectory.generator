@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'experiments/nonlinear_ablation.py'
+      - 'experiments/nonlinear_ablation_perturbations.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -16,7 +17,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install numpy
-      - name: Compare full and linear-only universes
+      - name: Compare full and linear-only balanced universe
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/nonlinear_ablation.py
+      - name: Compare nonlinear ablation across perturbed universes
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/nonlinear_ablation_perturbations.py
