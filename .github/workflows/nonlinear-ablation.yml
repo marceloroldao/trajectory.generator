@@ -18,6 +18,7 @@ on:
       - 'experiments/time_driven_generative_coordinate.py'
       - 'experiments/four_bit_time_driven_law.py'
       - 'experiments/four_bit_time_driven_reverse.py'
+      - 'experiments/standalone_four_bit_codec.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -90,3 +91,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/four_bit_time_driven_reverse.py
+      - name: Validate standalone four-bit codec
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/standalone_four_bit_codec.py
