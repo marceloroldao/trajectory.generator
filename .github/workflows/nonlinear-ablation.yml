@@ -12,6 +12,7 @@ on:
       - 'experiments/two_channel_geometric_laws.py'
       - 'experiments/emergent_geometry_from_local_law.py'
       - 'experiments/local_admissibility_gate.py'
+      - 'experiments/full_causal_emergence.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -60,3 +61,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/local_admissibility_gate.py
+      - name: Regenerate operational universe in full causal state
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/full_causal_emergence.py
