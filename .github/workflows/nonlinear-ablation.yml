@@ -14,6 +14,7 @@ on:
       - 'experiments/local_admissibility_gate.py'
       - 'experiments/full_causal_emergence.py'
       - 'experiments/minimal_generative_coordinate.py'
+      - 'experiments/generative_six_bit_law.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -70,3 +71,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/minimal_generative_coordinate.py
+      - name: Synthesize table-free six-bit generator
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/generative_six_bit_law.py
