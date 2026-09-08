@@ -10,6 +10,7 @@ on:
       - 'experiments/nonlinear_invariant_factorization.py'
       - 'experiments/nonlinear_two_channel_ablation.py'
       - 'experiments/two_channel_geometric_laws.py'
+      - 'experiments/emergent_geometry_from_local_law.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -50,3 +51,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/two_channel_geometric_laws.py
+      - name: Grow universe from local I/G law only
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/emergent_geometry_from_local_law.py
