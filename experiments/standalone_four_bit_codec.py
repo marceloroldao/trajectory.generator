@@ -9,9 +9,10 @@ Edge alphabet:
     z in {0,1}
 
 The local Boolean laws below are the best exact laws synthesized in
-four_bit_time_driven_law.py.  This module demonstrates that path counting,
-rank/unrank and the 63-bit 218/219 frontier can be reproduced from the compact
-law alone.
+four_bit_time_driven_law.py.  API convention is explicit:
+    transitions = number of labeled transitions AFTER the 3-bit initial prefix
+    path symbols = transitions + 3
+Thus the established 63-bit frontier is 218 transitions / 221 path symbols.
 """
 from __future__ import annotations
 
@@ -69,75 +70,78 @@ INITIAL=tuple(initial_private(s) for s in range(8))
 def suffix(p,phase,remaining):
     if remaining==0:
         return 1
-    total=0
-    for z in (0,1):
-        if allowed(p,z,phase):
-            total+=suffix(step(p,z,phase),(phase+1)%3,remaining-1)
-    return total
+    return sum(
+        suffix(step(p,z,phase),(phase+1)%3,remaining-1)
+        for z in (0,1)
+        if allowed(p,z,phase)
+    )
 
 
-def total(steps:int)->int:
-    if steps<0: raise ValueError('steps must be >=0')
-    # The original first three data bits select one of eight public initial
-    # states.  Thereafter `steps-3` labeled transitions evolve P.
-    if steps<=3:
-        return 1<<steps
-    rem=steps-3
-    return sum(suffix(initial_private(s),0,rem) for s in range(8))
+def total(transitions:int)->int:
+    if transitions<0:
+        raise ValueError('transitions must be >=0')
+    return sum(suffix(initial_private(s),0,transitions) for s in range(8))
 
 
-def unrank(rank:int,steps:int):
-    n=total(steps)
-    if not 0<=rank<n: raise ValueError('rank outside family')
-    if steps<=3:
-        return [((rank>>(steps-1-i))&1) for i in range(steps)]
+def unrank(address:int,transitions:int):
+    n=total(transitions)
+    if not 0<=address<n:
+        raise ValueError('address outside family')
 
-    rem=steps-3
+    r=address
     initial=None
     for s in range(8):
         p=initial_private(s)
-        c=suffix(p,0,rem)
-        if rank<c:
-            initial=s; break
-        rank-=c
+        c=suffix(p,0,transitions)
+        if r<c:
+            initial=s
+            break
+        r-=c
     assert initial is not None
 
     prefix=[(initial>>2)&1,(initial>>1)&1,initial&1]
     labels=[]
-    p=initial_private(initial); phase=0
-    for k in range(rem):
-        left=rem-k-1
+    p=initial_private(initial)
+    phase=0
+    for k in range(transitions):
+        left=transitions-k-1
         for z in (0,1):
-            if not allowed(p,z,phase): continue
+            if not allowed(p,z,phase):
+                continue
             np=step(p,z,phase)
             c=suffix(np,(phase+1)%3,left)
-            if rank<c:
-                labels.append(z); p=np; phase=(phase+1)%3; break
-            rank-=c
+            if r<c:
+                labels.append(z)
+                p=np
+                phase=(phase+1)%3
+                break
+            r-=c
         else:
             raise AssertionError('unrank lost path')
     return prefix+labels
 
 
 def rank(path):
-    steps=len(path)
-    if steps<=3:
-        v=0
-        for b in path: v=(v<<1)|int(b)
-        return v
+    if len(path)<3:
+        raise ValueError('path must include 3-bit initial prefix')
+    transitions=len(path)-3
     initial=(path[0]<<2)|(path[1]<<1)|path[2]
-    rem=steps-3
     r=0
     for s in range(initial):
-        r+=suffix(initial_private(s),0,rem)
-    p=initial_private(initial); phase=0
+        r+=suffix(initial_private(s),0,transitions)
+
+    p=initial_private(initial)
+    phase=0
     for k,z_actual in enumerate(path[3:]):
-        left=rem-k-1
+        left=transitions-k-1
         for z in (0,1):
-            if not allowed(p,z,phase): continue
+            if not allowed(p,z,phase):
+                continue
             np=step(p,z,phase)
             if z==z_actual:
-                p=np; phase=(phase+1)%3; break
+                p=np
+                phase=(phase+1)%3
+                break
             r+=suffix(np,(phase+1)%3,left)
         else:
             raise ValueError('path is not admissible')
@@ -145,13 +149,16 @@ def rank(path):
 
 
 def final_private(path):
-    if len(path)<=3:
-        return None
+    if len(path)<3:
+        raise ValueError('path must include prefix')
     initial=(path[0]<<2)|(path[1]<<1)|path[2]
-    p=initial_private(initial); phase=0
+    p=initial_private(initial)
+    phase=0
     for z in path[3:]:
-        if not allowed(p,z,phase): raise ValueError('inadmissible')
-        p=step(p,z,phase); phase=(phase+1)%3
+        if not allowed(p,z,phase):
+            raise ValueError('inadmissible')
+        p=step(p,z,phase)
+        phase=(phase+1)%3
     return p,phase
 
 
@@ -165,25 +172,25 @@ def main():
     assert total(218)<=LIMIT<total(219)
 
     rng=random.Random(20260908)
-    for steps in (1,3,4,16,64,218):
-        n=total(steps)
+    for transitions in (0,1,16,64,218):
+        n=total(transitions)
         samples=min(100,n)
         for _ in range(samples):
-            r=rng.randrange(n)
-            path=unrank(r,steps)
-            rr=rank(path)
-            assert rr==r,(steps,r,rr)
-        print('roundtrip',steps,samples,'ok')
+            address=rng.randrange(n)
+            path=unrank(address,transitions)
+            back=rank(path)
+            assert back==address,(transitions,address,back)
+            assert len(path)==transitions+3
+        print('roundtrip',transitions,samples,'ok')
 
-    # Demonstrate the intended address+length contract at the current frontier.
-    address=0x123456789ABCDEF & (LIMIT-1)
-    address%=total(218)
+    address=0x123456789ABCDEF % total(218)
     path=unrank(address,218)
     print('demo_address',address)
-    print('demo_steps',218)
-    print('demo_path_bits',len(path))
+    print('demo_transitions',218)
+    print('demo_path_symbols',len(path))
     print('demo_final_private',final_private(path))
     print('demo_rank_back',rank(path))
+    assert len(path)==221
     assert rank(path)==address
 
 if __name__=='__main__':
