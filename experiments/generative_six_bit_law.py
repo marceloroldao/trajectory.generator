@@ -70,8 +70,6 @@ def training(coord):
             allowed[(r,z)]=1
             nxt[(r,z)]=project(d,coord)
 
-    # Complete A truth table: every 6-bit coordinate x z; only the exact 49
-    # operational pairs are admitted.
     rows_a=[]
     for r in product((0,1),repeat=6):
         for z in (0,1):
@@ -79,7 +77,6 @@ def training(coord):
             row['A']=allowed.get((r,z),0)
             rows_a.append(row)
 
-    # F uses only allowed pairs (all other inputs are don't-cares).
     rows_f=[]
     for (r,z),nr in sorted(nxt.items()):
         row={f'r{i}':r[i] for i in range(6)}; row['z']=z
@@ -125,13 +122,17 @@ def main():
         alaw,fl,pinit=synth(coord)
         gen,seen=generate(alaw,fl,pinit)
         counts=path_counts(gen,pinit)
+        same_counts=all(
+            counts[i]==ref_counts[i]
+            for i in range(min(len(counts),len(ref_counts)))
+        )
         row={
           'coordinate':coord,'score':score(alaw,fl),
           'A':{'degree':alaw['degree'],'terms':alaw['terms'],'expression':alaw['expression']},
           'F':[(x['degree'],x['terms'],x['expression']) for x in fl],
           'states':len(seen),'edges':sum(len(v) for v in gen.values()),
           'frontier':frontier(counts),
-          'same_counts':all(counts[i]==ref_counts[i] for i in range(min(len(counts),len(ref_counts))),),
+          'same_counts':same_counts,
         }
         rows.append(row)
     rows.sort(key=lambda r:(r['score'],r['coordinate']))
