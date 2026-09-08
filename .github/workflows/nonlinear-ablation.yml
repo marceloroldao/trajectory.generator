@@ -11,6 +11,7 @@ on:
       - 'experiments/nonlinear_two_channel_ablation.py'
       - 'experiments/two_channel_geometric_laws.py'
       - 'experiments/emergent_geometry_from_local_law.py'
+      - 'experiments/local_admissibility_gate.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -55,3 +56,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/emergent_geometry_from_local_law.py
+      - name: Derive local admissibility gate
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/local_admissibility_gate.py
