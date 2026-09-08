@@ -19,6 +19,7 @@ on:
       - 'experiments/four_bit_time_driven_law.py'
       - 'experiments/four_bit_time_driven_reverse.py'
       - 'experiments/standalone_four_bit_codec.py'
+      - 'experiments/final_state_collision_entropy.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -95,3 +96,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/standalone_four_bit_codec.py
+      - name: Measure final-state collision entropy
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/final_state_collision_entropy.py
