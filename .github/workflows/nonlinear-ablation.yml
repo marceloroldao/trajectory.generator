@@ -16,6 +16,7 @@ on:
       - 'experiments/minimal_generative_coordinate.py'
       - 'experiments/generative_six_bit_law.py'
       - 'experiments/time_driven_generative_coordinate.py'
+      - 'experiments/four_bit_time_driven_law.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -80,3 +81,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/time_driven_generative_coordinate.py
+      - name: Synthesize four-bit time-driven law
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/four_bit_time_driven_law.py
