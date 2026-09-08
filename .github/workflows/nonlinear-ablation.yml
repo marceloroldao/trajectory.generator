@@ -13,6 +13,7 @@ on:
       - 'experiments/emergent_geometry_from_local_law.py'
       - 'experiments/local_admissibility_gate.py'
       - 'experiments/full_causal_emergence.py'
+      - 'experiments/minimal_generative_coordinate.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -65,3 +66,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/full_causal_emergence.py
+      - name: Search minimal raw generative coordinate
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/minimal_generative_coordinate.py
