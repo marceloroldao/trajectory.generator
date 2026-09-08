@@ -14,12 +14,11 @@ A=1 (other inputs are don't-cares).  We then regenerate the universe from the
 """
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import deque
 from itertools import product
 
-from binary_reversible_edge_label import labeled_records
 from local_label_formula_search import gf2_solve, monomial_specs, design_matrix, expression
-from minimal_generative_coordinate import bits, project, reference
+from minimal_generative_coordinate import project, reference
 from nonlinear_ablation import path_counts, frontier
 
 CANDIDATES = (
@@ -41,11 +40,12 @@ def solve(rows, inputs, target, max_degree):
         specs=monomial_specs(inputs,d)
         A=design_matrix(vectors,specs)
         sol=gf2_solve(A,y)
-        if sol is None: continue
+        if sol is None:
+            continue
         pred=[sum(a*b for a,b in zip(row,sol))&1 for row in A]
         if pred==y:
             expr,terms=expression(inputs,specs,sol)
-            active=[spec for spec,c in zip(specs,sol) if c]
+            active=[tuple(inputs[i] for i in spec) for spec,c in zip(specs,sol) if c]
             return {'degree':d,'terms':terms,'expression':expr,'active':active}
     return None
 
@@ -73,14 +73,17 @@ def training(coord):
     rows_a=[]
     for r in product((0,1),repeat=6):
         for z in (0,1):
-            row={f'r{i}':r[i] for i in range(6)}; row['z']=z
+            row={f'r{i}':r[i] for i in range(6)}
+            row['z']=z
             row['A']=allowed.get((r,z),0)
             rows_a.append(row)
 
     rows_f=[]
     for (r,z),nr in sorted(nxt.items()):
-        row={f'r{i}':r[i] for i in range(6)}; row['z']=z
-        for i,b in enumerate(nr): row[f'n{i}']=b
+        row={f'r{i}':r[i] for i in range(6)}
+        row['z']=z
+        for i,b in enumerate(nr):
+            row[f'n{i}']=b
         rows_f.append(row)
     pinit=tuple(project(s,coord) for s in initials)
     return rows_a,rows_f,pinit
@@ -90,33 +93,45 @@ def synth(coord):
     rows_a,rows_f,pinit=training(coord)
     ins=[f'r{i}' for i in range(6)]+['z']
     alaw=solve(rows_a,ins,'A',7)
-    fl=[]
-    for i in range(6): fl.append(solve(rows_f,ins,f'n{i}',7))
+    fl=[solve(rows_f,ins,f'n{i}',7) for i in range(6)]
+    assert alaw is not None and all(x is not None for x in fl)
     return alaw,fl,pinit
 
 
 def generate(alaw,fl,pinit):
-    seen=set(pinit); q=deque(pinit); edges={}
+    seen=set(pinit)
+    q=deque(pinit)
+    edges={}
     while q:
-        r=q.popleft(); outs=[]
+        r=q.popleft()
+        outs=[]
         for z in (0,1):
-            env={f'r{i}':r[i] for i in range(6)}; env['z']=z
-            if not eval_law(alaw,env): continue
+            env={f'r{i}':r[i] for i in range(6)}
+            env['z']=z
+            if not eval_law(alaw,env):
+                continue
             nr=tuple(eval_law(law,env) for law in fl)
             outs.append((z,nr))
             if nr not in seen:
-                seen.add(nr); q.append(nr)
+                seen.add(nr)
+                q.append(nr)
         edges[r]=outs
     return edges,seen
 
 
 def score(alaw,fl):
     laws=[alaw]+fl
-    return (max(x['degree'] for x in laws),sum(x['terms'] for x in laws),alaw['degree'],alaw['terms'])
+    return (
+        max(x['degree'] for x in laws),
+        sum(x['terms'] for x in laws),
+        alaw['degree'],
+        alaw['terms'],
+    )
 
 
 def main():
-    _,ref_edges,initials=reference(); ref_counts=path_counts(ref_edges,initials)
+    _,ref_edges,initials=reference()
+    ref_counts=path_counts(ref_edges,initials)
     rows=[]
     for coord in CANDIDATES:
         alaw,fl,pinit=synth(coord)
@@ -127,19 +142,29 @@ def main():
             for i in range(min(len(counts),len(ref_counts)))
         )
         row={
-          'coordinate':coord,'score':score(alaw,fl),
-          'A':{'degree':alaw['degree'],'terms':alaw['terms'],'expression':alaw['expression']},
+          'coordinate':coord,
+          'score':score(alaw,fl),
+          'A':{
+              'degree':alaw['degree'],
+              'terms':alaw['terms'],
+              'expression':alaw['expression'],
+          },
           'F':[(x['degree'],x['terms'],x['expression']) for x in fl],
-          'states':len(seen),'edges':sum(len(v) for v in gen.values()),
+          'states':len(seen),
+          'edges':sum(len(v) for v in gen.values()),
           'frontier':frontier(counts),
           'same_counts':same_counts,
         }
         rows.append(row)
     rows.sort(key=lambda r:(r['score'],r['coordinate']))
-    for r in rows: print(r)
+    for r in rows:
+        print(r)
     best=rows[0]
     print('BEST',best)
-    assert best['states']==37 and best['edges']==49 and best['frontier']==218 and best['same_counts']
+    assert best['states']==37
+    assert best['edges']==49
+    assert best['frontier']==218
+    assert best['same_counts']
 
 if __name__=='__main__':
     main()
