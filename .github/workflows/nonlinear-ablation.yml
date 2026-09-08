@@ -15,6 +15,7 @@ on:
       - 'experiments/full_causal_emergence.py'
       - 'experiments/minimal_generative_coordinate.py'
       - 'experiments/generative_six_bit_law.py'
+      - 'experiments/time_driven_generative_coordinate.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -75,3 +76,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/generative_six_bit_law.py
+      - name: Minimize private state with public phase clock
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/time_driven_generative_coordinate.py
