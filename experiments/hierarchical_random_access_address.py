@@ -51,7 +51,6 @@ A=tuple(phase_matrix(ph) for ph in range(3))
 
 @lru_cache(maxsize=None)
 def mpow(a_key,n):
-    # key 0..2 selects one 3-step cycle matrix, keeping cache keys compact.
     ph=a_key
     base=mm(A[ph],mm(A[(ph+1)%3],A[(ph+2)%3]))
     out=eye()
@@ -118,7 +117,10 @@ def rank_segment(states,zs,t0,t1,starts,ends):
 
 def rank_path(prefix,zs):
     s=(prefix[0]<<2)|(prefix[1]<<1)|prefix[2]
-    p=initial_private(s);states=[p]
+    p=initial_private(s)
+    if not zs:
+        return INIT.index(p)
+    states=[p]
     for t,z in enumerate(zs):
         assert allowed(p,z,t%3);p=step(p,z,t%3);states.append(p)
     return rank_segment(states,list(zs),0,len(zs),INIT,ALL)
@@ -126,9 +128,7 @@ def rank_path(prefix,zs):
 
 def unrank_segment(rank,t0,t1,starts,ends,states_out,zs_out):
     L=t1-t0
-    if L==0:
-        # boundary is resolved by caller's midpoint choices
-        return
+    if L==0:return
     if L==1:
         edges=enumerate_edges(t0,starts,ends)
         s,z,q=edges[rank]
@@ -149,7 +149,6 @@ def unrank_path(rank,T):
     if not 0<=rank<total:raise ValueError
     states=[None]*(T+1);zs=[None]*T
     if T==0:
-        # rank selects one initial state
         p=INIT[rank];s=next(s for s in range(8) if initial_private(s)==p)
         return [(s>>2)&1,(s>>1)&1,s&1],[]
     unrank_segment(rank,0,T,INIT,ALL,states,zs)
@@ -178,12 +177,10 @@ def bit_at(rank,T,k):
 
 
 def main():
-    # total path counts must remain the exact same language.
     for T in range(0,219):
         assert paths_count(0,T,INIT,ALL)==sum(fast_counts_at(T).values()),T
     print('hierarchical_language_counts_0_218 ok')
 
-    # exhaustive rank/unrank small horizons
     for T in range(0,9):
         total=paths_count(0,T,INIT,ALL)
         for r in range(total):
@@ -207,6 +204,6 @@ def main():
     print('count218',n218);print('count219',n219)
     assert n218==9131204053820206208 and n219==10214739716735776832
     print('rank_bits_at_218',n218.bit_length())
-    print('random_access_tree_depth_bound',218 .bit_length())
+    print('random_access_tree_depth_bound',(218).bit_length())
 
 if __name__=='__main__':main()
