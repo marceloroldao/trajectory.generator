@@ -22,6 +22,7 @@ on:
       - 'experiments/final_state_collision_entropy.py'
       - 'experiments/online_emergent_address.py'
       - 'experiments/horizon_free_branch_address.py'
+      - 'experiments/horizon_free_endpoint_rank.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -110,3 +111,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/horizon_free_branch_address.py
+      - name: Validate horizon-free endpoint rank
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/horizon_free_endpoint_rank.py
