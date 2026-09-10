@@ -1,0 +1,19 @@
+name: Direct joint update law
+on:
+  push:
+    paths:
+      - 'experiments/direct_joint_update_law.py'
+      - '.github/workflows/direct-joint-update-law.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Analyze direct joint rank update law
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/direct_joint_update_law.py
