@@ -16,6 +16,7 @@ modal field and demand exact encode/decode equivalence through T=218.
 from __future__ import annotations
 
 from fractions import Fraction
+from functools import lru_cache
 import random
 
 from count_vector_recurrence import mat_phase, mm, mv, vec0
@@ -61,7 +62,6 @@ def pdivmod(a,b):
     return trim(q),trim(r)
 def pmod(a,m):return pdivmod(a,m)[1]
 def pegcd(a,b):
-    # return g,s,t with s*a+t*b=g
     r0,r1=trim(a),trim(b); s0,s1=[Fraction(1)],[Fraction(0)]; t0,t1=[Fraction(0)],[Fraction(1)]
     while r1 != [Fraction(0)]:
         q,r=pdivmod(r0,r1)
@@ -92,7 +92,6 @@ def projectors(char):
         q,rem=pdivmod(char,f); assert rem==[0]
         g,s,_=pegcd(q,f); assert g==[Fraction(1)]
         e=pmod(pmul(q,s),char)
-        # CRT sanity: 1 mod own factor, 0 mod the others.
         assert pmod(e,f)==[Fraction(1)]
         for oname,of in FACTORS:
             if oname!=name: assert pmod(e,of)==[Fraction(0)]
@@ -110,30 +109,28 @@ def setup_modes():
     parts={name:apply_poly(F,e,v0) for name,e in proj.items()}
     assert vadd(*parts.values())==v0
 
-    # Jordan data.
-    plus0=parts['plus']; plusN=vsub(mvq(F,plus0),plus0) # (F-I)p
+    plus0=parts['plus']; plusN=vsub(mvq(F,plus0),plus0)
     assert mvq(F,plusN)==plusN
-    minus0=parts['minus']; minusN=vadd(mvq(F,minus0),minus0) # (F+I)m
+    minus0=parts['minus']; minusN=vadd(mvq(F,minus0),minus0)
     assert mvq(F,minusN)==vscale(-1,minusN)
     trans0=parts['transient']; assert mvq(F,trans0)==[0]*16
 
-    # Growth Krylov basis w0,Fw0,F^2w0.
     g0=parts['growth']; g1=mvq(F,g0); g2=mvq(F,g1)
-    # cubic gives F^3 g = g0-g1+2g2
     assert mvq(F,g2)==vadd(g0,vscale(-1,g1),vscale(2,g2))
     return M,F,trans0,plus0,plusN,minus0,minusN,(g0,g1,g2)
 
 M,F,TRANS0,PLUS0,PLUSN,MINUS0,MINUSN,GBASE=setup_modes()
 
 
+@lru_cache(maxsize=None)
 def growth_amplitudes(n:int):
-    # coeffs in GBASE for F^n*g0.  Only these 3 public amplitudes evolve.
     a,b,c=Fraction(1),Fraction(0),Fraction(0)
     for _ in range(n):
         a,b,c=c,a-c,b+2*c
     return a,b,c
 
 
+@lru_cache(maxsize=None)
 def phase0_vector(n:int):
     a,b,c=growth_amplitudes(n)
     growth=vadd(vscale(a,GBASE[0]),vscale(b,GBASE[1]),vscale(c,GBASE[2]))
@@ -142,15 +139,20 @@ def phase0_vector(n:int):
     trans=TRANS0 if n==0 else [Fraction(0)]*16
     out=vadd(trans,plus,minus,growth)
     assert all(x.denominator==1 and x>=0 for x in out)
-    return [int(x) for x in out]
+    return tuple(int(x) for x in out)
 
 
+@lru_cache(maxsize=None)
 def modal_counts_at(t:int):
     if t<0:raise ValueError
     n,r=divmod(t,3)
-    v=phase0_vector(n)
+    v=list(phase0_vector(n))
     for ph in range(r):v=[int(x) for x in mv(M[ph],v)]
-    return {STATES[i]:v[i] for i in range(16) if v[i]}
+    return tuple((STATES[i],v[i]) for i in range(16) if v[i])
+
+
+def counts_dict(t:int):
+    return dict(modal_counts_at(t))
 
 
 def state_offsets(counts):
@@ -161,19 +163,19 @@ def state_offsets(counts):
 def opts(p,phase):return tuple(z for z in (0,1) if allowed(p,z,phase))
 
 def unpack_global(a,t):
-    c=modal_counts_at(t); offs,total=state_offsets(c)
+    c=counts_dict(t); offs,total=state_offsets(c)
     if not 0<=a<total:raise ValueError
     for p in sorted(c):
         if a<offs[p]+c[p]:return p,a-offs[p]
     raise AssertionError
 
 def pack_global(p,r,t):
-    c=modal_counts_at(t);offs,_=state_offsets(c)
+    c=counts_dict(t);offs,_=state_offsets(c)
     if p not in c or not 0<=r<c[p]:raise ValueError
     return offs[p]+r
 
 def incoming_blocks(q,tprev):
-    c=modal_counts_at(tprev);phase=tprev%3;off=0;out=[]
+    c=counts_dict(tprev);phase=tprev%3;off=0;out=[]
     for p in sorted(c):
         for z in opts(p,phase):
             if step(p,z,phase)==q:
@@ -206,26 +208,24 @@ def encode_path(path):
 
 
 def main():
-    # Exact count-field equality, not just totals.
     for t in range(221):
-        assert modal_counts_at(t)==dp_counts_at(t),t
+        assert counts_dict(t)==dp_counts_at(t),t
     print('modal_count_field_equivalence_0_220 ok')
     print('public_live_amplitudes 3')
     for n in (0,1,2,10,50,72):print('growth_amp',n,growth_amplitudes(n))
 
-    # Address codec equivalence through the 63-bit frontier.
     rng=random.Random(20260910)
     for T in range(10):
-        total=sum(modal_counts_at(T).values())
+        total=sum(counts_dict(T).values())
         for a in range(total):
             p=decode_address(a,T);aa,tt=encode_path(p);assert aa==a and tt==T
         print('exhaustive_modal_roundtrip',T,total,'ok')
     for T in (16,64,128,200,218):
-        total=sum(modal_counts_at(T).values())
+        total=sum(counts_dict(T).values())
         for _ in range(200):
             a=rng.randrange(total);p=decode_address(a,T);aa,tt=encode_path(p);assert aa==a and tt==T
         print('random_modal_roundtrip',T,200,'ok')
-    n218=sum(modal_counts_at(218).values());n219=sum(modal_counts_at(219).values())
+    n218=sum(counts_dict(218).values());n219=sum(counts_dict(219).values())
     print('count218',n218);print('count219',n219)
     assert n218==9131204053820206208 and n219==10214739716735776832
 
