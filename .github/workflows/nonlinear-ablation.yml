@@ -24,6 +24,7 @@ on:
       - 'experiments/horizon_free_branch_address.py'
       - 'experiments/horizon_free_endpoint_rank.py'
       - 'experiments/count_vector_recurrence.py'
+      - 'experiments/count_field_mode_factorization.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -120,3 +121,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/count_vector_recurrence.py
+      - name: Factor count field into invariant modes
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/count_field_mode_factorization.py
