@@ -1,0 +1,22 @@
+name: Scalar public field
+
+on:
+  push:
+    paths:
+      - 'experiments/scalar_public_field.py'
+      - 'experiments/modal_horizon_free_address.py'
+      - '.github/workflows/scalar-public-field.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate scalar public field and horizon-free codec
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/scalar_public_field.py
