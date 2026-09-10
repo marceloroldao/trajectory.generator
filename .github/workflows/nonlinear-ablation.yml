@@ -23,6 +23,7 @@ on:
       - 'experiments/online_emergent_address.py'
       - 'experiments/horizon_free_branch_address.py'
       - 'experiments/horizon_free_endpoint_rank.py'
+      - 'experiments/count_vector_recurrence.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -115,3 +116,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/horizon_free_endpoint_rank.py
+      - name: Derive compact count-field recurrence
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/count_vector_recurrence.py
