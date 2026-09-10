@@ -1,0 +1,24 @@
+name: Joint dyadic address
+
+on:
+  push:
+    paths:
+      - 'experiments/joint_dyadic_address.py'
+      - 'experiments/dyadic_online_forest.py'
+      - 'experiments/hierarchical_random_access_address.py'
+      - 'experiments/standalone_four_bit_codec.py'
+      - '.github/workflows/joint-dyadic-address.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate jointly ranked dyadic address
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/joint_dyadic_address.py
