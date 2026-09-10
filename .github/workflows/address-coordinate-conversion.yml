@@ -1,0 +1,19 @@
+name: Address coordinate conversion
+on:
+  push:
+    paths:
+      - 'experiments/address_coordinate_conversion.py'
+      - '.github/workflows/address-coordinate-conversion.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Analyze endpoint/hierarchical rank conversion
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/address_coordinate_conversion.py
