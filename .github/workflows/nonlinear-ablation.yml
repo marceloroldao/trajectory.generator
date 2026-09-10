@@ -25,6 +25,7 @@ on:
       - 'experiments/horizon_free_endpoint_rank.py'
       - 'experiments/count_vector_recurrence.py'
       - 'experiments/count_field_mode_factorization.py'
+      - 'experiments/modal_horizon_free_address.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -125,3 +126,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/count_field_mode_factorization.py
+      - name: Validate modal horizon-free address
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/modal_horizon_free_address.py
