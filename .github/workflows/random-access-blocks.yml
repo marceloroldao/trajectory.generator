@@ -1,0 +1,25 @@
+name: Random access block structure
+
+on:
+  push:
+    paths:
+      - 'experiments/random_access_block_structure.py'
+      - 'experiments/logtime_scalar_public_field.py'
+      - 'experiments/scalar_public_field.py'
+      - 'experiments/modal_horizon_free_address.py'
+      - 'experiments/standalone_four_bit_codec.py'
+      - '.github/workflows/random-access-blocks.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test multi-step rank block contiguity
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/random_access_block_structure.py
