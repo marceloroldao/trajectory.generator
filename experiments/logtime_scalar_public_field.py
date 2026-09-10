@@ -198,7 +198,9 @@ def main():
     # Large direct lookup: no iteration from zero in the implementation.
     n = 10000
     a, b, c = scalar_triplet_fast(n)
-    assert c == 2 * b - a + scalar_triplet_fast(n - 1)[2]
+    prev = scalar_triplet_fast(n - 1)
+    # g[n+2] = 2*g[n+1] - g[n] + g[n-1]
+    assert c == 2 * b - a + prev[0]
     print('direct_triplet_n10000_bitlengths', tuple(abs(x).bit_length() for x in (a, b, c)))
     print('complexity O(log n) matrix squarings')
 
