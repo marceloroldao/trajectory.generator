@@ -1,0 +1,22 @@
+name: Logtime public field
+
+on:
+  push:
+    paths:
+      - 'experiments/logtime_scalar_public_field.py'
+      - 'experiments/scalar_public_field.py'
+      - '.github/workflows/logtime-public-field.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate O(log t) public-field lookup and codec
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/logtime_scalar_public_field.py
