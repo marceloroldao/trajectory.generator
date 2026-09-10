@@ -21,6 +21,7 @@ on:
       - 'experiments/standalone_four_bit_codec.py'
       - 'experiments/final_state_collision_entropy.py'
       - 'experiments/online_emergent_address.py'
+      - 'experiments/horizon_free_branch_address.py'
       - '.github/workflows/nonlinear-ablation.yml'
   workflow_dispatch:
 
@@ -105,3 +106,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
         run: python experiments/online_emergent_address.py
+      - name: Test horizon-free branch address
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/horizon_free_branch_address.py
