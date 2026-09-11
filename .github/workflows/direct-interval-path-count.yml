@@ -1,0 +1,21 @@
+name: Direct interval path count
+
+on:
+  push:
+    paths:
+      - 'experiments/direct_interval_path_count.py'
+      - '.github/workflows/direct-interval-path-count.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate direct interval-conditioned counts
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
+        run: python experiments/direct_interval_path_count.py
