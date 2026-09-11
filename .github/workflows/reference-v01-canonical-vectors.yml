@@ -14,4 +14,6 @@ jobs:
         with:
           python-version: '3.12'
       - name: Emit canonical vectors
+        env:
+          PYTHONPATH: .
         run: python experiments/reference_v01_canonical_vectors.py
