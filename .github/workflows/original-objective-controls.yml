@@ -1,0 +1,20 @@
+name: Original objective controls
+on:
+  push:
+    paths:
+      - 'experiments/time_driven_full_capacity_control.py'
+      - 'experiments/branch_separation_search.py'
+      - '.github/workflows/original-objective-controls.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Positive control endpoint-only recovery
+        run: python experiments/time_driven_full_capacity_control.py
+      - name: Fixed-law branch separation search
+        run: python experiments/branch_separation_search.py
