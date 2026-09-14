@@ -1,19 +1,14 @@
 name: General endpoint controllability
 on:
+  workflow_dispatch:
   push:
     paths:
-      - 'experiments/general_endpoint_controllability.py'
-      - '.github/workflows/general-endpoint-controllability.yml'
-  workflow_dispatch:
+      - experiments/general_endpoint_controllability.py
+      - .github/workflows/general-endpoint-controllability.yml
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Validate systematic endpoint-only family
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: python experiments/general_endpoint_controllability.py
+        run: PYTHONPATH=. python3 experiments/general_endpoint_controllability.py
