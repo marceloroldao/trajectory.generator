@@ -47,8 +47,6 @@ def search(W,limit=None):
     M=1<<W
     odds=range(1,M,2)
     tested=0; best=(-1,None,None)
-    # Normalize c0=0: a global translation/conjugacy freedom makes this a
-    # useful search gauge. c1 must differ from c0 at depth 1.
     c0=0
     for a0 in odds:
       for a1 in odds:
@@ -73,7 +71,9 @@ def verify_words(W,params):
 
 
 def main():
-    for W in range(2,9):
+    # W<=7 is exhaustive and fast enough for CI. Larger widths are separate
+    # research runs because the affine family grows cubically/exponentially.
+    for W in range(2,8):
         tested,best=search(W)
         d,params,stats=best
         print('W',W,'tested',tested,'best_depth',d,'params',params,'stats',stats)
