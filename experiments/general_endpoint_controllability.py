@@ -12,16 +12,17 @@ where v_j = A_{W-1}...A_{j+1} d_j.
 Exact recovery of every W-bit input is equivalent to the W transported input
 vectors v_j having rank W over GF(2).
 
-This file constructs and validates a systematic full-rank family.  The base
+This file constructs and validates a systematic full-rank family. The base
 operator is an invertible companion/LFSR map C with one cyclic injection vector.
 A public time-dependent change of coordinates U_t then gives
     A_t = U_{t+1} C U_t^{-1},  d_t = U_{t+1} d,
 which preserves full controllability while making the natural state evolution
-explicitly time-dependent.  U_t carries no history and is reconstructed from t.
+explicitly time-dependent. U_t carries no history and is reconstructed from t.
 
 This does not compress arbitrary data: T=W is the information-theoretic limit.
 """
 from __future__ import annotations
+from dataclasses import dataclass
 import random
 
 
@@ -41,11 +42,9 @@ def identity(W):
 
 
 def mat_mul(A,B,W):
-    # row representation; row i of AB is xor of B rows selected by A row i
     out=[]
     for ar in A:
-        r=0
-        m=ar
+        r=0; m=ar
         while m:
             lsb=m & -m; k=lsb.bit_length()-1
             r ^= B[k]; m ^= lsb
@@ -68,13 +67,6 @@ def inv_matrix(A,W):
 
 
 def companion_rows(W):
-    """Invertible cyclic map: shift coordinates and feedback x0 xor x1 into top.
-
-    For W=1 use identity. For W>=2:
-      y_i = x_{i+1}, i=0..W-2
-      y_{W-1} = x_0 xor x_1
-    The constant term is 1, hence C is invertible. e0 is tested as cyclic below.
-    """
     if W==1:return (1,)
     rows=[1<<(i+1) for i in range(W-1)]
     rows.append((1<<0)|(1<<1))
@@ -103,18 +95,13 @@ def find_cyclic_injection(C,W):
 
 
 def public_U(t,W):
-    """Cheap public invertible, period-3 shear/rotation-like coordinate changes."""
-    I=list(identity(W))
-    ph=t%3
+    I=list(identity(W)); ph=t%3
     if W==1:return tuple(I)
     if ph==0:
-        # lower triangular shear y_i=x_i xor x_{i-1}
         for i in range(1,W): I[i]^=1<<(i-1)
     elif ph==1:
-        # upper triangular shear
         for i in range(W-1): I[i]^=1<<(i+1)
     else:
-        # permutation: cyclic coordinate rotation
         I=[1<<((i+1)%W) for i in range(W)]
     return tuple(I)
 
@@ -124,66 +111,78 @@ def law_at(t,W,C,d):
     Uti=inv_matrix(Ut,W)
     A=mat_mul(mat_mul(Un,C,W),Uti,W)
     dv=mat_vec(Un,d,W)
-    # public universe offset independent of input
     c=mat_vec(Un, ((t+1)*0x9E3779B1) & ((1<<W)-1), W)
     return A,dv,c
 
 
-def encode(bits,W):
-    C=companion_rows(W); d=find_cyclic_injection(C,W); x=0
-    for t,b in enumerate(bits):
-        A,dv,c=law_at(t,W,C,d)
-        x=mat_vec(A,x,W) ^ (dv if b else 0) ^ c
-    return x
-
-
-def endpoint_columns(W,T=None):
-    if T is None:T=W
-    zero=encode([0]*T,W)
-    cols=[]
-    for j in range(T):
-        bits=[0]*T; bits[j]=1
-        cols.append(encode(bits,W)^zero)
-    return zero,cols
-
-
 def decoder_rows(cols,W):
-    # M maps input coefficient vector to endpoint xor offset; rows of M are endpoint bits.
     rows=[]
     for outbit in range(W):
         row=0
         for j,col in enumerate(cols): row |= ((col>>outbit)&1)<<j
         rows.append(row)
-    Minv=inv_matrix(tuple(rows),W)
-    return Minv
+    return inv_matrix(tuple(rows),W)
 
 
-def decode(x,W,T):
-    if T!=W: raise ValueError('full-capacity decoder currently defined for T=W')
-    offset,cols=endpoint_columns(W,W)
+@dataclass(frozen=True)
+class Model:
+    W:int
+    laws:tuple
+    offset:int
+    cols:tuple
+    decoder:tuple
+    injection:int
+
+
+def build_model(W:int)->Model:
+    C=companion_rows(W); d=find_cyclic_injection(C,W)
+    laws=tuple(law_at(t,W,C,d) for t in range(W))
+
+    def enc(bits):
+        x=0
+        for b,(A,dv,c) in zip(bits,laws):
+            x=mat_vec(A,x,W) ^ (dv if b else 0) ^ c
+        return x
+
+    offset=enc([0]*W)
+    cols=[]
+    for j in range(W):
+        bits=[0]*W; bits[j]=1
+        cols.append(enc(bits)^offset)
     assert rank_vectors(cols,W)==W
-    Minv=decoder_rows(cols,W)
-    bvec=mat_vec(Minv,x^offset,W)
-    return [(bvec>>j)&1 for j in range(W)]
+    decoder=decoder_rows(cols,W)
+    return Model(W,laws,offset,tuple(cols),decoder,d)
+
+
+def encode_model(bits,model:Model):
+    if len(bits)!=model.W: raise ValueError('T must equal W for full-capacity model')
+    x=0
+    for b,(A,dv,c) in zip(bits,model.laws):
+        x=mat_vec(A,x,model.W) ^ (dv if b else 0) ^ c
+    return x
+
+
+def decode_model(x,model:Model):
+    bvec=mat_vec(model.decoder,x^model.offset,model.W)
+    return [(bvec>>j)&1 for j in range(model.W)]
 
 
 def validate_width(W, exhaustive=False, samples=1000):
-    C=companion_rows(W); d=find_cyclic_injection(C,W)
-    offset,cols=endpoint_columns(W,W)
-    rank=rank_vectors(cols,W)
-    assert rank==W,(W,rank,d)
+    model=build_model(W)
     rng=random.Random(20260914+W)
     if exhaustive:
         for n in range(1<<W):
             bits=[(n>>j)&1 for j in range(W)]
-            x=encode(bits,W); got=decode(x,W,W)
+            x=encode_model(bits,model); got=decode_model(x,model)
             assert got==bits,(W,n,x,got,bits)
+        tested=1<<W
     else:
         for _ in range(samples):
             bits=[rng.randrange(2) for _ in range(W)]
-            x=encode(bits,W); got=decode(x,W,W)
+            x=encode_model(bits,model); got=decode_model(x,model)
             assert got==bits,(W,x)
-    return {'W':W,'rank':rank,'d':d,'offset':offset,'samples':(1<<W if exhaustive else samples)}
+        tested=samples
+    return {'W':W,'rank':rank_vectors(model.cols,W),'d':model.injection,'offset':model.offset,'samples':tested}
 
 
 def main():
