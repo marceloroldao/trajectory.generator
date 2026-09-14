@@ -10,10 +10,5 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Validate full-capacity direct endpoint recovery
-        env:
-          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments
-        run: python experiments/endpoint_controllability_general.py
+        run: python3 experiments/endpoint_controllability_general.py
