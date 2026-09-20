@@ -1,0 +1,24 @@
+name: nonlinear-local-reverse-gate
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "experiments/nonlinear_sparse_local_regions.py"
+      - "experiments/nonlinear_region_classifier_search.py"
+      - "experiments/nonlinear_region_exact_law_search.py"
+      - ".github/workflows/nonlinear-local-reverse-gate.yml"
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Branch-region gate
+        run: python experiments/nonlinear_sparse_local_regions.py
+      - name: Compact observable search
+        run: python experiments/nonlinear_region_classifier_search.py
+      - name: Exact nonlinear law search
+        run: python experiments/nonlinear_region_exact_law_search.py
