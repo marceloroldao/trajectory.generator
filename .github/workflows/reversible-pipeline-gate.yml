@@ -239,3 +239,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/branch_information_budget_gate.py
+
+      - name: Gate horizontal vertical entropy flow
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/horizontal_vertical_entropy_gate.py
