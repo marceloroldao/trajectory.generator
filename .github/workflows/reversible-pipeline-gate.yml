@@ -51,6 +51,7 @@ jobs:
             tests.test_cyclic_fiber_functor \
             tests.test_history_naturality_no_go \
             tests.test_stationary_reversible_cover_no_go \
+            tests.test_branch_information_budget \
             tests.test_vertical_conjugacy_class
 
       - name: Run automatic recurrent-core gate
@@ -226,3 +227,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/stationary_reversible_cover_no_go_gate.py
+
+      - name: Gate branch-created information budget
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/branch_information_budget_gate.py
