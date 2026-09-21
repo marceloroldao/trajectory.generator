@@ -61,7 +61,8 @@ jobs:
             tests.test_normalized_vertical_dynamics \
             tests.test_exact_vertical_connection \
             tests.test_vertical_connection_cursor \
-            tests.test_seeded_vertical_connection
+            tests.test_seeded_vertical_connection \
+            tests.test_information_clock_trace
 
       - name: Run automatic recurrent-core gate
         env:
@@ -320,3 +321,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/information_clock_reverse_unifilar_audit.py
+
+      - name: Gate lossless information-clock event trace
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/information_clock_trace_gate.py
