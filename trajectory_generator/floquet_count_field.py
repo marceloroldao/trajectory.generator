@@ -208,6 +208,7 @@ class FloquetCountFieldRecurrence:
             period_adjacency,
             start_nodes=self.start_nodes,
             cache_rows=cache_rows,
+            retain_basis=False,
         )
 
         self.base_nodes = self.period_field.nodes
@@ -243,6 +244,10 @@ class FloquetCountFieldRecurrence:
     @property
     def basis_integer_count(self) -> int:
         return self.period_field.basis_integer_count
+
+    @property
+    def derived_basis_integer_count(self) -> int:
+        return self.period_field.derived_basis_integer_count
 
     @property
     def cache_rows(self) -> int:
