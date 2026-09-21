@@ -85,7 +85,26 @@ def main():
                 address_identity = False
                 break
 
+        cursor = field.backward_cursor(transition_frontier)
+        backward_identity = True
+        direct_row = field.vector_at(transition_frontier)
+        while cursor.time >= 0:
+            if cursor.current_vector() != direct_row:
+                backward_identity = False
+                break
+            if cursor.time == 0:
+                break
+            cursor.step_back()
+            direct_row = field.vector_at(cursor.time)
+
         fixed_entries = field.basis_integer_count
+        reverse_window_entries = (
+            field.reachable_state_count
+            * len(field.reduced_coefficients)
+        )
+        operational_entries = (
+            fixed_entries + reverse_window_entries
+        )
         direct_entries = field.direct_table_integer_count(
             transition_frontier
         )
@@ -96,6 +115,7 @@ def main():
             "PASS",
             count_identity
             and address_identity
+            and backward_identity
             and field.validate_recurrence(32)
             and field.order == expected_order
             and field.reachable_state_count == expected_reachable,
@@ -105,12 +125,20 @@ def main():
             field.transient_factor_power,
             "coefficients", field.coefficients,
             "fixed_basis_integers", fixed_entries,
+            "reverse_window_rows",
+            len(field.reduced_coefficients),
+            "reverse_window_integers", reverse_window_entries,
+            "operational_fixed_integers", operational_entries,
             "direct_frontier_integers", direct_entries,
-            "storage_reduction", direct_entries / fixed_entries,
+            "basis_storage_reduction",
+            direct_entries / fixed_entries,
+            "operational_storage_reduction",
+            direct_entries / operational_entries,
             "cache_rows", field.cache_rows,
             "cache_rows_current", field.cached_row_count,
             "count_identity", count_identity,
             "address_identity", address_identity,
+            "backward_count_identity", backward_identity,
         )
 
         frontier_count = recurrence_codec.total_count(
