@@ -251,3 +251,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/vertical_dominance_gate.py
+
+      - name: Gate vertical entropy rate against topological entropy
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/vertical_entropy_rate_gate.py
