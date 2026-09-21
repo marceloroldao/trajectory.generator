@@ -73,3 +73,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/causal_state_information_gap.py
+
+      - name: Gate reversible causal fiber lift
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/reversible_fiber_lift_gate.py
