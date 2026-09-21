@@ -34,6 +34,7 @@ from trajectory_generator.information_clock_trace import (
 )
 from trajectory_generator.information_event_cursor import (
     InformationEventBackwardCursor,
+    InformationEventRuntimePlan,
 )
 from trajectory_generator.scalar_partition_trajectory import (
     build_scalar_partition_translation_machine,
@@ -114,6 +115,9 @@ def main():
     for name, params in CANDIDATES.items():
         _, _, legacy_validate = make_legacy_codec(params)
         machine, trace_codec = build(params)
+        runtime_plan = InformationEventRuntimePlan(
+            trace_codec
+        )
         field = machine.connection.machine.field
         transition_steps, family = transition_frontier(field)
         steps = transition_steps + machine.seed_bits
@@ -146,12 +150,13 @@ def main():
         event_bits = []
 
         for final_state in samples:
+            trace_start = perf_counter()
             cursor = InformationEventBackwardCursor(
                 trace_codec,
                 final_state,
                 transition_steps,
+                runtime_plan=runtime_plan,
             )
-            trace_start = perf_counter()
             trace = cursor.decode_trace(
                 seed_bits=machine.seed_bits,
                 start_node_to_seed=machine.start_node_to_seed,
