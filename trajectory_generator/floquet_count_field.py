@@ -110,6 +110,68 @@ class FloquetBackwardCountCursor:
             self.field.period - 1,
         )
 
+    def vector_at_back(
+        self,
+        steps: int,
+    ) -> tuple[int, ...]:
+        """Return the exact physical count vector at time-step offset behind current."""
+        if steps < 0:
+            raise ValueError("steps must be >= 0")
+        if steps > self.time:
+            raise ValueError("cannot look before t=0")
+
+        target_time = self.time - steps
+        period_index, phase_offset = divmod(
+            target_time,
+            self.field.period,
+        )
+        current_period = self.period_cursor.time
+        period_steps = current_period - period_index
+        if period_steps < 0:
+            raise AssertionError(
+                "target period lies ahead of backward cursor"
+            )
+
+        base = self.period_cursor.vector_at_back(
+            period_steps
+        )
+        return self.field.expand_period_vector(
+            base,
+            phase_offset,
+        )
+
+    def step_back_many(
+        self,
+        steps: int,
+    ) -> None:
+        """Move backward several physical steps, crossing only needed period rows."""
+        if steps < 0:
+            raise ValueError("steps must be >= 0")
+        if steps > self.time:
+            raise ValueError("cannot step before t=0")
+        if steps == 0:
+            return
+
+        target_time = self.time - steps
+        target_period, target_phase = divmod(
+            target_time,
+            self.field.period,
+        )
+        period_steps = (
+            self.period_cursor.time
+            - target_period
+        )
+        if period_steps < 0:
+            raise AssertionError(
+                "target period lies ahead of backward cursor"
+            )
+
+        self.period_cursor.step_back_many(
+            period_steps
+        )
+        self.time = target_time
+        self.phase_offset = target_phase
+
     def step_back(self) -> None:
         if self.time <= 0:
             raise ValueError("cannot step before t=0")
