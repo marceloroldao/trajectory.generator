@@ -81,6 +81,40 @@ class CountFieldRecurrenceTests(unittest.TestCase):
                 self.assertEqual(len(path), steps + 1)
 
 
+
+    def test_compact_mode_regenerates_basis_on_demand(self):
+        graph = {
+            "s": ["a", "b"],
+            "a": ["a", "c"],
+            "b": ["c"],
+            "c": ["a", "b"],
+        }
+        retained = CountFieldRecurrence(
+            graph,
+            start_nodes=("s",),
+            cache_rows=0,
+            retain_basis=True,
+        )
+        compact = CountFieldRecurrence(
+            graph,
+            start_nodes=("s",),
+            cache_rows=0,
+            retain_basis=False,
+        )
+
+        self.assertEqual(retained.coefficients, compact.coefficients)
+        self.assertEqual(compact.basis_integer_count, 0)
+        self.assertEqual(
+            compact.derived_basis_integer_count,
+            retained.basis_integer_count,
+        )
+
+        for t in (0, 1, 5, 20, 75, 200):
+            self.assertEqual(
+                compact.vector_at(t),
+                retained.vector_at(t),
+            )
+
     def test_backward_cursor_reconstructs_every_count_row(self):
         graph = {
             "s": ["a", "b"],
