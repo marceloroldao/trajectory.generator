@@ -15,19 +15,23 @@ The macro-block calculation includes all reachable predecessors in the public
 universe, so recurrent-core merges and transient in-edges do not invalidate the
 jump.
 
-Macro candidates are tested on clones of the compact current Floquet cursor.
-A successful clone is promoted to the live cursor; failed candidates are
-discarded. No count-field restart or trajectory-time table is required.
+Macro candidates are evaluated directly as precompiled linear functionals of
+the public count vector at the macro source time. The backward Floquet cursor
+can look up that source vector from its compact recurrence window without
+walking the candidate path.
 
-The logical API can therefore consume several physical transitions in one
-reverse_event() while preserving bounded recurrence state. Candidate probing
-still performs exact recurrence steps internally and is benchmarked separately.
+A successful macro therefore performs one bounded count-vector lookback, one
+integer dot product for the composed block offset, one rank interval test, and
+one multi-step Floquet cursor move. No candidate path is replayed physically.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .composed_vertical_connection import (
+    ComposedVerticalConnection,
+)
 from .exact_vertical_connection import (
     LocalFiberState,
 )
@@ -51,6 +55,7 @@ class InformationEventCursorMetrics:
     equivalent_physical_steps: int
     count_cursor_restarts: int
     macro_probe_physical_steps: int
+    macro_block_evaluations: int
     maximum_stored_floquet_rows: int
     phase_state_count: int
 
@@ -101,23 +106,29 @@ class InformationEventBackwardCursor:
         self._fallback_physical_steps = 0
         self._count_cursor_restarts = 0
         self._macro_probe_physical_steps = 0
+        self._macro_block_evaluations = 0
         self._maximum_stored_rows = (
             self.count_cursor.stored_row_count
         )
 
+        self.composed = ComposedVerticalConnection(
+            self.connection
+        )
         self.macro_candidates = {}
-        self.macro_label_by_path = {}
         for macro in trace_codec.structure.macro_edges:
             labels = trace_codec.macro_edge_labels[
                 macro.label
             ]
+            plan = self.composed.compile_path(
+                labels
+            )
             self.macro_candidates.setdefault(
                 macro.target,
                 [],
-            ).append(labels)
-            self.macro_label_by_path[
-                labels
-            ] = macro.label
+            ).append((
+                macro.label,
+                plan,
+            ))
 
     @property
     def metrics(self) -> InformationEventCursorMetrics:
@@ -142,102 +153,15 @@ class InformationEventBackwardCursor:
             macro_probe_physical_steps=(
                 self._macro_probe_physical_steps
             ),
+            macro_block_evaluations=(
+                self._macro_block_evaluations
+            ),
             maximum_stored_floquet_rows=(
                 self._maximum_stored_rows
             ),
             phase_state_count=(
                 self.field.phase_state_count
             ),
-        )
-
-    def _try_known_path(
-        self,
-        edge_labels,
-    ):
-        labels = tuple(edge_labels)
-        if not labels or len(labels) > self.state.time:
-            return None
-
-        cursor = self.count_cursor.clone()
-        node = self.state.node
-        rank = self.state.rank
-        fiber_size = self.state.fiber_size
-        time = self.state.time
-        probe_steps = 0
-
-        for label in reversed(labels):
-            edge = self.connection.codec.edge_by_label[
-                label
-            ]
-            if edge.target != node:
-                return None
-            if cursor.time != time:
-                raise AssertionError(
-                    "candidate cursor and local time diverged"
-                )
-
-            incoming = self.connection.codec.incoming[
-                node
-            ]
-
-            if len(incoming) == 1:
-                if incoming[0] != edge:
-                    return None
-                cursor.step_back()
-                previous_rank = rank
-                previous_size = fiber_size
-            else:
-                previous_vector = (
-                    cursor.previous_vector()
-                )
-                offset = 0
-                found = False
-                block = None
-
-                for candidate in incoming:
-                    size = previous_vector[
-                        self.field.node_index[
-                            candidate.source
-                        ]
-                    ]
-                    if candidate == edge:
-                        found = True
-                        block = size
-                        break
-                    offset += size
-
-                if (
-                    not found
-                    or block is None
-                    or block <= 0
-                    or not (
-                        offset <= rank < offset + block
-                    )
-                ):
-                    self._macro_probe_physical_steps += (
-                        probe_steps + 1
-                    )
-                    return None
-
-                previous_rank = rank - offset
-                previous_size = block
-                cursor.step_back()
-
-            probe_steps += 1
-            time -= 1
-            node = edge.source
-            rank = previous_rank
-            fiber_size = previous_size
-
-        self._macro_probe_physical_steps += probe_steps
-        return (
-            LocalFiberState(
-                time=time,
-                node=node,
-                rank=rank,
-                fiber_size=fiber_size,
-            ),
-            cursor,
         )
 
     def _try_macro_jump(self):
@@ -248,31 +172,73 @@ class InformationEventBackwardCursor:
         if not candidates:
             return None
 
-        for labels in candidates:
-            result = self._try_known_path(labels)
-            if result is None:
+        vectors_by_distance = {}
+
+        for macro_label, plan in candidates:
+            distance = plan.physical_steps
+            if distance > self.state.time:
+                continue
+            if plan.target != self.state.node:
                 continue
 
-            new_state, new_cursor = result
-            label = self.macro_label_by_path[
-                tuple(labels)
-            ]
+            source_vector = vectors_by_distance.get(
+                distance
+            )
+            if source_vector is None:
+                source_vector = (
+                    self.count_cursor.vector_at_back(
+                        distance
+                    )
+                )
+                vectors_by_distance[
+                    distance
+                ] = source_vector
 
-            self.state = new_state
-            self.count_cursor = new_cursor
+            block = (
+                self.composed.embedding_from_source_vector(
+                    plan,
+                    start_time=(
+                        self.state.time - distance
+                    ),
+                    source_vector=source_vector,
+                    target_size=self.state.fiber_size,
+                )
+            )
+            self._macro_block_evaluations += 1
+
+            if (
+                block.source_size <= 0
+                or not (
+                    block.start
+                    <= self.state.rank
+                    < block.end
+                )
+            ):
+                continue
+
+            previous_rank = (
+                self.state.rank - block.start
+            )
+            self.count_cursor.step_back_many(
+                distance
+            )
+            self.state = LocalFiberState(
+                time=self.state.time - distance,
+                node=block.source,
+                rank=previous_rank,
+                fiber_size=block.source_size,
+            )
             self._maximum_stored_rows = max(
                 self._maximum_stored_rows,
                 self.count_cursor.stored_row_count,
             )
             self._logical_operations += 1
             self._macro_jumps += 1
-            self._macro_physical_steps += len(
-                labels
-            )
+            self._macro_physical_steps += distance
 
             return MacroTraceItem(
-                macro_label=label,
-                physical_steps=len(labels),
+                macro_label=macro_label,
+                physical_steps=distance,
             )
 
         return None
