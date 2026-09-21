@@ -24,7 +24,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python -m unittest -v tests.test_algebraic_root_trajectory tests.test_streaming_colex_trajectory tests.test_weighted_path_trajectory tests.test_recurrent_macrograph tests.test_public_graph_trajectory
+          python -m unittest -v             tests.test_algebraic_root_trajectory             tests.test_streaming_colex_trajectory             tests.test_weighted_path_trajectory             tests.test_recurrent_macrograph             tests.test_public_graph_trajectory             tests.test_count_field_recurrence
 
       - name: Run automatic recurrent-core gate
         env:
@@ -37,3 +37,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/full_universe_streaming_codec.py
+
+      - name: Run fixed-memory count-field gate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/count_field_recurrence_gate.py
