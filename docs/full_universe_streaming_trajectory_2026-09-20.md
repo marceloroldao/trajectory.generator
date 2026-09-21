@@ -149,23 +149,28 @@ This count cache contains no trajectory-specific history; it is deterministic
 public law data. Nevertheless, reducing or eliminating the `O(V*T)` cache is
 the next important implementation problem.
 
-## Next gate
+## Count-field table follow-up: completed
 
-The next experiment should derive a compact recurrence for the endpoint-count
-field itself.
+The `O(V*T)` public count table is no longer required for the phase-lifted
+topological candidates.
 
-The phase-lifted graph is finite, so its count vector obeys:
+`trajectory_generator/count_field_recurrence.py` derives an exact minimal
+Krylov recurrence for the endpoint-count vector and
+`trajectory_generator/floquet_count_field.py` compresses it further onto the
+public phase-0 Floquet slice.
 
-```text
-D_(t+1) = A^T D_t
-```
+The Floquet variant:
 
-where `A` is the public adjacency matrix.
+- keeps no persistent seed basis;
+- regenerates distant count rows from the graph and recurrence coefficients;
+- walks the count field backward with a short fixed window during decode;
+- preserves exactly the same addresses, languages, and 63-bit frontiers.
 
-Instead of retaining every historical count row, the project should test:
+GitHub Actions run `35551989944` passed the complete gate.
 
-1. reversible/checkpointed count-field regeneration;
-2. linear-recurrence or characteristic-polynomial evaluation;
-3. logarithmic-time count recovery by matrix powering;
-4. whether the address transition can be expressed from a smaller endogenous
-   count coordinate rather than an `O(V*T)` table.
+See `docs/floquet_count_field_recurrence_2026-09-20.md`.
+
+The remaining conceptual boundary is no longer a time-indexed count table. It is
+the enumerative address coordinate itself: can a future endogenous universe make
+the raw causal geometry branch-separating enough that the extra address
+coordinate collapses into the causal state?
