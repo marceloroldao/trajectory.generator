@@ -46,7 +46,8 @@ jobs:
             tests.test_vertical_gauge_symmetry \
             tests.test_branch_reflection_vertical_dynamics \
             tests.test_gauge_invariant_vertical_law \
-            tests.test_reversible_completion_groupoid
+            tests.test_reversible_completion_groupoid \
+            tests.test_vertical_conjugacy_class
 
       - name: Run automatic recurrent-core gate
         env:
@@ -173,3 +174,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/topological_gauge_equivalence_gate.py
+
+      - name: Gate gauge-invariant vertical conjugacy classes
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/vertical_conjugacy_class_gate.py
