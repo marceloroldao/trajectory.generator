@@ -166,3 +166,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/reversible_completion_groupoid_gate.py
+
+      - name: Gate topological final-state gauge equivalence
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/topological_gauge_equivalence_gate.py
