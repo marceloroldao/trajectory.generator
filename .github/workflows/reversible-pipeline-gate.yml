@@ -47,6 +47,7 @@ jobs:
             tests.test_branch_reflection_vertical_dynamics \
             tests.test_gauge_invariant_vertical_law \
             tests.test_reversible_completion_groupoid \
+            tests.test_gauge_covariant_vertical_event \
             tests.test_vertical_conjugacy_class
 
       - name: Run automatic recurrent-core gate
@@ -180,3 +181,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/vertical_conjugacy_class_gate.py
+
+      - name: Gate gauge-covariant information-event dynamics
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/gauge_covariant_vertical_event_gate.py
