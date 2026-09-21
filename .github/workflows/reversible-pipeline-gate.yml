@@ -245,3 +245,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/horizontal_vertical_entropy_gate.py
+
+      - name: Gate asymptotic vertical information dominance
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/vertical_dominance_gate.py
