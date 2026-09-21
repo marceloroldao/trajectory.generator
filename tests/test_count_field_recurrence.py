@@ -80,6 +80,45 @@ class CountFieldRecurrenceTests(unittest.TestCase):
                 )
                 self.assertEqual(len(path), steps + 1)
 
+
+    def test_backward_cursor_reconstructs_every_count_row(self):
+        graph = {
+            "s": ["a", "b"],
+            "a": ["a", "c"],
+            "b": ["c"],
+            "c": ["a", "b"],
+        }
+        field = CountFieldRecurrence(
+            graph,
+            start_nodes=("s",),
+            cache_rows=1,
+        )
+
+        final_time = 80
+        direct = [field.initial_vector]
+        for _ in range(final_time):
+            direct.append(field.step_vector(direct[-1]))
+
+        cursor = field.backward_cursor(final_time)
+        while cursor.time >= 0:
+            self.assertEqual(
+                cursor.current_vector(),
+                direct[cursor.time],
+            )
+            if cursor.time > 0:
+                self.assertEqual(
+                    cursor.previous_vector(),
+                    direct[cursor.time - 1],
+                )
+                cursor.step_back()
+            else:
+                break
+
+        self.assertLessEqual(
+            cursor.stored_row_count,
+            len(field.reduced_coefficients),
+        )
+
     def test_storage_is_horizon_independent(self):
         graph = {
             "a": ["a", "b"],
