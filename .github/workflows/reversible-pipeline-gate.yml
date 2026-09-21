@@ -39,7 +39,8 @@ jobs:
             tests.test_lifted_causal_universe \
             tests.test_endogenous_vertical_dynamics \
             tests.test_canonical_vertical_law \
-            tests.test_canonical_vertical_state_machine
+            tests.test_canonical_vertical_state_machine \
+            tests.test_minimal_reversible_completion
 
       - name: Run automatic recurrent-core gate
         env:
@@ -118,3 +119,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/canonical_vertical_final_state_gate.py
+
+      - name: Gate general minimal reversible completion
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/general_reversible_completion_gate.py
