@@ -136,6 +136,7 @@ def main():
         total_macro_steps = 0
         total_fallback_steps = 0
         total_restarts = 0
+        total_macro_probe_steps = 0
         maximum_stored_integers = 0
 
         event_start = perf_counter()
@@ -169,6 +170,9 @@ def main():
             total_macro_steps += metrics.macro_physical_steps
             total_fallback_steps += metrics.fallback_physical_steps
             total_restarts += metrics.count_cursor_restarts
+            total_macro_probe_steps += (
+                metrics.macro_probe_physical_steps
+            )
             maximum_stored_integers = max(
                 maximum_stored_integers,
                 metrics.maximum_stored_count_integers,
@@ -203,6 +207,7 @@ def main():
             and total_macro_steps > 0
             and total_macro_steps + total_fallback_steps == total_physical
             and total_logical < total_physical
+            and total_restarts == 0
         )
 
         print(
@@ -221,6 +226,8 @@ def main():
             "semantic_reduction_ratio",
             f"{semantic_reduction:.6f}",
             "count_cursor_restarts", total_restarts,
+            "macro_probe_physical_steps",
+            total_macro_probe_steps,
             "maximum_stored_count_integers",
             maximum_stored_integers,
             "scalar_at_calls", scalar_calls,
