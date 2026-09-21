@@ -231,11 +231,7 @@ class ComposedVerticalConnection:
                 "base_vector has wrong Floquet phase-state dimension"
             )
         phase_offset = start_time % self.field.period
-        expected = (
-            plan.source_phase_offset
-            + self.field.base_phase
-        ) % self.field.period
-        if phase_offset != expected:
+        if phase_offset != plan.source_phase_offset:
             raise ValueError(
                 "macro source time is incompatible with source phase"
             )
