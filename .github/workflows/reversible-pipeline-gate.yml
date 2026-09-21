@@ -43,3 +43,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/count_field_recurrence_gate.py
+
+      - name: Run Floquet count-field compression gate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/floquet_count_field_gate.py
