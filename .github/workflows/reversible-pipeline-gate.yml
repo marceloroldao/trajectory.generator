@@ -55,3 +55,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/translation_address_gate.py
+
+      - name: Run scalar partition reverse gate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/scalar_partition_gate.py
