@@ -328,12 +328,61 @@ current rank. The deterministic physical path attached to that public edge is
 then regenerated rather than stored.
 
 For the current macrograph with physical edge lengths `1, 12, 2, 5`, the first
-complete exact-length family that exceeds 63 bits occurs at physical time 234.
-The conservative streaming frontier is therefore 233 physical steps. Exact
-path counts are non-monotone by physical length; the isolated `T=235` family
-fits again, but is not promoted as the conservative prefix-safe frontier.
+branch-aligned exact-length family that exceeds 63 bits occurs at physical time
+234. The branch-aligned streaming frontier is therefore 233 physical steps.
+This result applies to prefixes ending on macrograph branch nodes; section 19
+adds the physical-step codec required for prefixes that stop inside a
+deterministic flight.
 
 See `docs/information_clock_streaming_codec_2026-09-20.md`.
+
+### 19. Automatic endogenous recurrent pipeline
+
+`trajectory_generator/recurrent_macrograph.py` and
+`experiments/automatic_endogenous_pipeline_gate.py`
+
+The recurrent-address pipeline is now derived directly from the public universe
+graph. No branch symbols or macro-edge lengths are supplied manually.
+
+The pipeline performs:
+
+```text
+public universe
+    -> SCC decomposition
+    -> dominant recurrent core
+    -> branch-node detection
+    -> deterministic-flight collapse
+    -> weighted information-clock macrograph
+    -> exact physical-step reversible address
+```
+
+A second codec is built directly on every physical transition inside the
+selected recurrent core. This removes a limitation of the earlier weighted
+macrograph codec: the final state may now occur at **any physical step**,
+including in the middle of a deterministic flight.
+
+For the three historical topological candidates, automatic extraction gives:
+
+```text
+candidate      core   branches   macro lengths
+robust_208      24       6       3x6, 4x6
+balanced_221    14       2       1, 2, 5, 12
+long_239         8       1       3, 6
+```
+
+With every recurrent-core node treated as an admissible initial state, the
+63-bit physical-core frontiers are:
+
+```text
+robust_208    203 steps   occupancy ~= 99.8107%
+balanced_221  219 steps   occupancy ~= 94.9595%
+long_239      259 steps   occupancy ~= 93.6773%
+```
+
+These are core-only operational frontiers and are not replacements for the
+historical whole-universe frontier numbers in the candidate names.
+
+See `docs/automatic_endogenous_recurrent_pipeline_2026-09-20.md`.
 
 ## Fundamental limit
 
@@ -355,29 +404,33 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The project now has three complementary operational references:
+The project now has four complementary operational references:
 
 1. **streaming colex:** exact enumerative capacity for the <=K-change family,
    with local stepwise reverse;
 2. **algebraic root trajectory:** direct field-geometric branch detection with
    constant `log2(K!)` asymptotic redundancy;
-3. **weighted information-clock address:** local reversible addressing of
-   entropy-bearing macro-events while deterministic physical flights are
-   regenerated from the public universe.
+3. **weighted information clock:** reversible addressing at entropy-bearing
+   macro-event boundaries;
+4. **automatic recurrent pipeline:** derives the recurrent core, branch states,
+   deterministic flights, macrograph, and a physical-step reversible address
+   directly from the endogenous universe graph.
 
-The strongest immediate next gate is to remove the manually isolated two-state
-macrograph from the third construction. The recurrent core, branch states,
-deterministic flights, weighted edges, and their rank blocks should be derived
-automatically from the endogenous universe graph and passed directly into the
-weighted streaming codec. That would make the path
+The strongest remaining boundary is now outside the recurrent core. The current
+physical codec assumes the trajectory begins at some recurrent-core node and
+encodes that node in the address. The next gate should extend the same reverse
+rank-block principle through the transient condensation DAG, so that the
+complete path
 
-`public universe -> recurrent core -> information clock -> reversible address`
+`original universe state -> transient prefix -> recurrent core -> recurrent orbit`
 
-fully automatic rather than assembled experiment by experiment.
+is represented by one final address and public physical length, without passing
+the core-entry state as side metadata.
 
 ## Quick start
 
 ```bash
+python experiments/automatic_endogenous_pipeline_gate.py
 python experiments/information_clock_streaming_codec.py
 python experiments/streaming_colex_trajectory_gate.py
 python experiments/algebraic_root_trajectory_gate.py
