@@ -24,10 +24,16 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python -m unittest -v             tests.test_algebraic_root_trajectory             tests.test_streaming_colex_trajectory             tests.test_weighted_path_trajectory             tests.test_recurrent_macrograph
+          python -m unittest -v tests.test_algebraic_root_trajectory tests.test_streaming_colex_trajectory tests.test_weighted_path_trajectory tests.test_recurrent_macrograph tests.test_public_graph_trajectory
 
-      - name: Run automatic endogenous pipeline gate
+      - name: Run automatic recurrent-core gate
         env:
           PYTHONPATH: .
         run: |
           python experiments/automatic_endogenous_pipeline_gate.py
+
+      - name: Run full-universe streaming gate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/full_universe_streaming_codec.py
