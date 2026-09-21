@@ -188,6 +188,12 @@ jobs:
         run: |
           python experiments/cyclic_fiber_naturality_gate.py
 
+      - name: Gate cyclic fiber origin no-go theorem
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/fiber_group_structure_no_go_gate.py
+
       - name: Gate gauge-covariant information-event dynamics
         env:
           PYTHONPATH: .
