@@ -2,6 +2,7 @@ import unittest
 
 from trajectory_generator.recurrent_macrograph import (
     build_physical_core_codec,
+    component_spectral_radius,
     derive_recurrent_structure,
     dominant_recurrent_component,
     monotone_physical_frontier,
@@ -46,6 +47,38 @@ class RecurrentMacrographTests(unittest.TestCase):
         self.assertEqual(
             sorted(edge.length for edge in structure.macro_edges),
             [1, 2, 5, 12],
+        )
+
+    def test_shifted_spectral_radius_handles_periodic_core(self):
+        deterministic = {
+            "x0": ["x1"],
+            "x1": ["x2"],
+            "x2": ["x0"],
+        }
+        self.assertAlmostEqual(
+            component_spectral_radius(
+                deterministic,
+                set(deterministic),
+            ),
+            1.0,
+            places=12,
+        )
+
+        graph = synthetic_information_clock_graph()
+        lam = component_spectral_radius(
+            graph,
+            set(graph),
+        )
+        residual = (
+            lam**12
+            - lam**9
+            - lam**6
+            - 1.0
+        )
+        self.assertAlmostEqual(
+            residual,
+            0.0,
+            places=10,
         )
 
     def test_physical_codec_covers_midflight_endpoints(self):
