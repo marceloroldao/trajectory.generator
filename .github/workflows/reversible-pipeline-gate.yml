@@ -37,7 +37,8 @@ jobs:
             tests.test_seeded_graph_state_machine \
             tests.test_reversible_fiber_lift \
             tests.test_lifted_causal_universe \
-            tests.test_endogenous_vertical_dynamics
+            tests.test_endogenous_vertical_dynamics \
+            tests.test_canonical_vertical_law
 
       - name: Run automatic recurrent-core gate
         env:
@@ -104,3 +105,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/endogenous_vertical_dynamics_gate.py
+
+      - name: Search minimal canonical vertical law
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/canonical_vertical_law_search.py
