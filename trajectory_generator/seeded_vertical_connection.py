@@ -33,6 +33,7 @@ from .exact_vertical_connection import (
     LocalFiberState,
 )
 from .weighted_path_trajectory import WeightedEdge
+from .vertical_connection_cursor import VerticalConnectionBackwardCursor
 
 
 Node = Hashable
@@ -176,45 +177,12 @@ class SeededVerticalConnectionMachine:
 
         return self.connection.pack(local), steps
 
-    def decode(
+    def _finish_seeded_decode(
         self,
-        final_state: int,
+        local: LocalFiberState,
+        reversed_symbols: list[int],
         steps: int,
     ) -> list[int]:
-        if steps < 0:
-            raise ValueError("steps must be >= 0")
-        if final_state < 0:
-            raise ValueError("final_state must be non-negative")
-
-        if steps == 0:
-            if final_state != 0:
-                raise ValueError(
-                    "empty trajectory has only state 0"
-                )
-            return []
-
-        if steps < self.seed_bits:
-            return self._bits_from_integer(
-                final_state,
-                steps,
-            )
-
-        transition_time = steps - self.seed_bits
-
-        local = self.connection.unpack(
-            final_state,
-            transition_time,
-        )
-
-        reversed_symbols = []
-        while local.time > 0:
-            local, edge = self.connection.reverse(
-                local
-            )
-            reversed_symbols.append(
-                int(self.edge_symbol(edge))
-            )
-
         if local.rank != 0:
             raise AssertionError(
                 "local reverse did not reach singleton seed fiber"
@@ -240,3 +208,128 @@ class SeededVerticalConnectionMachine:
                 "decoded trajectory has wrong length"
             )
         return result
+
+    def _validate_decode_inputs(
+        self,
+        final_state: int,
+        steps: int,
+    ):
+        if steps < 0:
+            raise ValueError("steps must be >= 0")
+        if final_state < 0:
+            raise ValueError("final_state must be non-negative")
+
+        if steps == 0:
+            if final_state != 0:
+                raise ValueError(
+                    "empty trajectory has only state 0"
+                )
+            return []
+
+        if steps < self.seed_bits:
+            return self._bits_from_integer(
+                final_state,
+                steps,
+            )
+        return None
+
+    def decode_direct(
+        self,
+        final_state: int,
+        steps: int,
+    ) -> list[int]:
+        """Reference local decoder using scalar partition functionals."""
+        early = self._validate_decode_inputs(
+            final_state,
+            steps,
+        )
+        if early is not None:
+            return early
+
+        transition_time = steps - self.seed_bits
+        local = self.connection.unpack(
+            final_state,
+            transition_time,
+        )
+
+        reversed_symbols = []
+        while local.time > 0:
+            local, edge = self.connection.reverse(
+                local
+            )
+            reversed_symbols.append(
+                int(self.edge_symbol(edge))
+            )
+
+        return self._finish_seeded_decode(
+            local,
+            reversed_symbols,
+            steps,
+        )
+
+    def decode(
+        self,
+        final_state: int,
+        steps: int,
+    ) -> list[int]:
+        """Optimized final-state decode using a fixed-memory Floquet cursor."""
+        early = self._validate_decode_inputs(
+            final_state,
+            steps,
+        )
+        if early is not None:
+            return early
+
+        transition_time = steps - self.seed_bits
+        cursor = VerticalConnectionBackwardCursor(
+            self.connection,
+            final_state,
+            transition_time,
+        )
+
+        reversed_symbols = []
+        while cursor.state.time > 0:
+            edge = cursor.reverse()
+            reversed_symbols.append(
+                int(self.edge_symbol(edge))
+            )
+
+        return self._finish_seeded_decode(
+            cursor.state,
+            reversed_symbols,
+            steps,
+        )
+
+    def decode_with_cursor_metrics(
+        self,
+        final_state: int,
+        steps: int,
+    ):
+        """Return decoded bits plus fixed-memory cursor metrics."""
+        early = self._validate_decode_inputs(
+            final_state,
+            steps,
+        )
+        if early is not None:
+            return early, None
+
+        transition_time = steps - self.seed_bits
+        cursor = VerticalConnectionBackwardCursor(
+            self.connection,
+            final_state,
+            transition_time,
+        )
+
+        reversed_symbols = []
+        while cursor.state.time > 0:
+            edge = cursor.reverse()
+            reversed_symbols.append(
+                int(self.edge_symbol(edge))
+            )
+
+        bits = self._finish_seeded_decode(
+            cursor.state,
+            reversed_symbols,
+            steps,
+        )
+        return bits, cursor.metrics
