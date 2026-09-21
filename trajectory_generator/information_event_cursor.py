@@ -471,3 +471,98 @@ class InformationEventBackwardCursor:
             items=tuple(items),
             physical_reverse_steps=transition_steps,
         )
+
+
+
+class InformationEventDecoder:
+    """Reusable final-state decoder with one static public event-runtime plan."""
+
+    def __init__(
+        self,
+        machine,
+    ) -> None:
+        self.machine = machine
+        self.trace_codec = InformationClockTraceCodec(
+            machine
+        )
+        self.runtime_plan = InformationEventRuntimePlan(
+            self.trace_codec
+        )
+
+    def decode_trace(
+        self,
+        final_state: int,
+        steps: int,
+    ) -> InformationClockTrace:
+        early = self.machine._validate_decode_inputs(
+            final_state,
+            steps,
+        )
+        if early is not None:
+            return self.trace_codec.decode_trace(
+                final_state,
+                steps,
+            )
+
+        transition_steps = (
+            steps - self.machine.seed_bits
+        )
+        cursor = InformationEventBackwardCursor(
+            self.trace_codec,
+            final_state,
+            transition_steps,
+            runtime_plan=self.runtime_plan,
+        )
+        return cursor.decode_trace(
+            seed_bits=self.machine.seed_bits,
+            start_node_to_seed=(
+                self.machine.start_node_to_seed
+            ),
+        )
+
+    def decode_trace_with_metrics(
+        self,
+        final_state: int,
+        steps: int,
+    ):
+        early = self.machine._validate_decode_inputs(
+            final_state,
+            steps,
+        )
+        if early is not None:
+            return (
+                self.trace_codec.decode_trace(
+                    final_state,
+                    steps,
+                ),
+                None,
+            )
+
+        transition_steps = (
+            steps - self.machine.seed_bits
+        )
+        cursor = InformationEventBackwardCursor(
+            self.trace_codec,
+            final_state,
+            transition_steps,
+            runtime_plan=self.runtime_plan,
+        )
+        trace = cursor.decode_trace(
+            seed_bits=self.machine.seed_bits,
+            start_node_to_seed=(
+                self.machine.start_node_to_seed
+            ),
+        )
+        return trace, cursor.metrics
+
+    def decode_bits(
+        self,
+        final_state: int,
+        steps: int,
+    ) -> list[int]:
+        return self.trace_codec.expand_bits(
+            self.decode_trace(
+                final_state,
+                steps,
+            )
+        )
