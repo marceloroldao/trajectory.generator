@@ -127,3 +127,18 @@ from .coherence_memory_universe import (
 )
 
 __all__ = [name for name in globals() if not name.startswith("_")]
+
+from .exact_vertical_connection import (
+    ExactSubfiberEmbedding,
+    ExactVerticalConnection,
+    LocalFiberState,
+)
+from .seeded_vertical_connection import (
+    SeededVerticalConnectionMachine,
+)
+from .information_event_cursor import (
+    InformationEventBackwardCursor,
+    InformationEventCursorMetrics,
+    InformationEventDecoder,
+    InformationEventRuntimePlan,
+)
