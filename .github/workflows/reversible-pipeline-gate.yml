@@ -40,7 +40,8 @@ jobs:
             tests.test_endogenous_vertical_dynamics \
             tests.test_canonical_vertical_law \
             tests.test_canonical_vertical_state_machine \
-            tests.test_minimal_reversible_completion
+            tests.test_minimal_reversible_completion \
+            tests.test_reversible_natural_extension
 
       - name: Run automatic recurrent-core gate
         env:
@@ -125,3 +126,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/general_reversible_completion_gate.py
+
+      - name: Gate natural-extension gauge conjugacy
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/natural_extension_gauge_gate.py
