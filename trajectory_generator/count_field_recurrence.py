@@ -297,6 +297,18 @@ class BackwardCountCursor:
                 rows.append(field.step_vector(rows[-1]))
             self.rows = deque(rows)
 
+    def clone(self) -> "BackwardCountCursor":
+        clone = object.__new__(BackwardCountCursor)
+        clone.field = self.field
+        clone.time = self.time
+        clone.window_order = self.window_order
+        clone.rows = (
+            None
+            if self.rows is None
+            else deque(self.rows)
+        )
+        return clone
+
     @property
     def stored_row_count(self) -> int:
         return 0 if self.rows is None else len(self.rows)
