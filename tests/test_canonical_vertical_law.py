@@ -1,9 +1,11 @@
 import unittest
 
 from trajectory_generator.canonical_vertical_law import (
+    CANONICAL_PHASE_MERGE_SPEC,
     CanonicalPeriodicVerticalLift,
     CanonicalVerticalLawSpec,
     canonical_law_specs,
+    derive_minimal_partition_law,
 )
 from trajectory_generator.scalar_partition_trajectory import (
     build_scalar_partition_translation_machine,
@@ -42,6 +44,24 @@ class CanonicalVerticalLawTests(unittest.TestCase):
         for spec in specs:
             spec.validate()
             self.assertGreaterEqual(spec.term_count, 2)
+
+    def test_structural_derivation_matches_frozen_law(self):
+        self.assertEqual(
+            derive_minimal_partition_law(),
+            CANONICAL_PHASE_MERGE_SPEC,
+        )
+        self.assertEqual(
+            CANONICAL_PHASE_MERGE_SPEC.period_multiple,
+            1,
+        )
+        self.assertEqual(
+            CANONICAL_PHASE_MERGE_SPEC.orientation_features,
+            ("phase",),
+        )
+        self.assertEqual(
+            CANONICAL_PHASE_MERGE_SPEC.shift_features,
+            ("incoming_index",),
+        )
 
     def test_simple_phase_merge_law_is_reversible(self):
         spec = CanonicalVerticalLawSpec(
