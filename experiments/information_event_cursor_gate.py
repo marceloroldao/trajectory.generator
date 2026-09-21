@@ -137,6 +137,7 @@ def main():
         total_fallback_steps = 0
         total_restarts = 0
         total_macro_probe_steps = 0
+        total_macro_block_evaluations = 0
         maximum_stored_integers = 0
 
         event_start = perf_counter()
@@ -173,6 +174,9 @@ def main():
             total_macro_probe_steps += (
                 metrics.macro_probe_physical_steps
             )
+            total_macro_block_evaluations += (
+                metrics.macro_block_evaluations
+            )
             maximum_stored_integers = max(
                 maximum_stored_integers,
                 metrics.maximum_stored_count_integers,
@@ -208,6 +212,8 @@ def main():
             and total_macro_steps + total_fallback_steps == total_physical
             and total_logical < total_physical
             and total_restarts == 0
+            and total_macro_probe_steps == 0
+            and total_macro_block_evaluations > 0
         )
 
         print(
@@ -228,6 +234,8 @@ def main():
             "count_cursor_restarts", total_restarts,
             "macro_probe_physical_steps",
             total_macro_probe_steps,
+            "macro_block_evaluations",
+            total_macro_block_evaluations,
             "maximum_stored_count_integers",
             maximum_stored_integers,
             "scalar_at_calls", scalar_calls,
@@ -237,7 +245,7 @@ def main():
             f"{timing_ratio:.6f}",
             "timing_is_gate", False,
             "interpretation",
-            "exact event-level reverse runtime; timing remains diagnostic",
+            "exact direct macro-block runtime with zero physical probing; timing remains diagnostic",
         )
 
         if not hard_pass:
