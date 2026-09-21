@@ -8,6 +8,7 @@ from trajectory_generator.information_clock_trace import (
 )
 from trajectory_generator.information_event_cursor import (
     InformationEventBackwardCursor,
+    InformationEventRuntimePlan,
 )
 from trajectory_generator.scalar_partition_trajectory import (
     build_scalar_partition_translation_machine,
@@ -93,6 +94,54 @@ class InformationEventCursorTests(unittest.TestCase):
                     cursor.metrics.macro_probe_physical_steps,
                     0,
                 )
+
+
+    def test_shared_runtime_plan_is_exact(self):
+        machine, trace_codec = self.build()
+        plan = InformationEventRuntimePlan(
+            trace_codec
+        )
+
+        steps = 9
+        total = (
+            machine.connection.machine.oracle.total_count(
+                steps - machine.seed_bits
+            )
+        )
+
+        checked = 0
+        for final_state in range(total):
+            try:
+                expected = machine.decode(
+                    final_state,
+                    steps,
+                )
+            except ValueError:
+                continue
+
+            cursor = InformationEventBackwardCursor(
+                trace_codec,
+                final_state,
+                steps - machine.seed_bits,
+                runtime_plan=plan,
+            )
+            trace = cursor.decode_trace(
+                seed_bits=machine.seed_bits,
+                start_node_to_seed=(
+                    machine.start_node_to_seed
+                ),
+            )
+            self.assertEqual(
+                trace_codec.expand_bits(trace),
+                expected,
+            )
+            self.assertEqual(
+                cursor.metrics.macro_probe_physical_steps,
+                0,
+            )
+            checked += 1
+
+        self.assertGreater(checked, 0)
 
 
 if __name__ == "__main__":
