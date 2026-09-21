@@ -130,6 +130,56 @@ class VerticalConnectionCursorTests(unittest.TestCase):
 
         self.assertGreater(cursor.pack_current(), -1)
 
+    def test_reverse_unifilar_fast_path_skips_previous_vector(self):
+        machine, connection = self.build()
+
+        start = ("a", 0)
+        forward = VerticalConnectionForwardCursor(
+            connection,
+            start,
+            0,
+        )
+        unique_edge = next(
+            edge
+            for edge in machine.codec.outgoing[start]
+            if len(
+                machine.codec.incoming[edge.target]
+            ) == 1
+        )
+        forward.forward(unique_edge.label)
+        packed = forward.pack_current()
+
+        cursor = VerticalConnectionBackwardCursor(
+            connection,
+            packed,
+            1,
+        )
+
+        def forbidden():
+            raise AssertionError(
+                "reverse-unifilar fast path requested previous_vector"
+            )
+
+        cursor.count_cursor.previous_vector = forbidden
+        recovered = cursor.reverse()
+
+        self.assertEqual(
+            recovered,
+            unique_edge,
+        )
+        self.assertEqual(
+            cursor.state.node,
+            start,
+        )
+        self.assertEqual(
+            cursor.metrics.reverse_unifilar_steps,
+            1,
+        )
+        self.assertEqual(
+            cursor.metrics.partition_reverse_steps,
+            0,
+        )
+
     def test_cursor_reverse_survives_forbidden_scalar_oracle(self):
         machine, connection = self.build()
         final_time = 10
