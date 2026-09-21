@@ -14,6 +14,7 @@ from trajectory_generator.canonical_vertical_state_machine import (
 from trajectory_generator.gauge_covariant_vertical_event import (
     build_maximal_pairing_branch_lift,
     cycle_type,
+    derive_maximal_pairing_cycle_type,
     fixed_point_count,
     maximal_pairing_cycle_type,
     maximal_pairing_involutions,
@@ -80,7 +81,12 @@ def small_group_gate():
         expected_type = maximal_pairing_cycle_type(
             size
         )
+        derived_type = derive_maximal_pairing_cycle_type(
+            size
+        )
         passed = (
+            derived_type == expected_type
+            and
             fixed_point_count(representative)
             == size % 2
             and cycle_type(representative)
@@ -105,6 +111,7 @@ def small_group_gate():
             "PASS", passed,
             "class_members", len(members),
             "cycle_type", expected_type,
+            "axiomatically_derived", derived_type,
             "fixed_points",
             fixed_point_count(representative),
         )
