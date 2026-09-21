@@ -33,6 +33,8 @@ from .weighted_path_trajectory import WeightedEdge
 @dataclass(frozen=True)
 class CursorMetrics:
     reverse_steps: int
+    reverse_unifilar_steps: int
+    partition_reverse_steps: int
     maximum_stored_floquet_rows: int
     phase_state_count: int
     reachable_state_count: int
@@ -66,6 +68,8 @@ class VerticalConnectionBackwardCursor:
             final_time
         )
         self._reverse_steps = 0
+        self._reverse_unifilar_steps = 0
+        self._partition_reverse_steps = 0
         self._maximum_stored_rows = (
             self.count_cursor.stored_row_count
         )
@@ -116,6 +120,12 @@ class VerticalConnectionBackwardCursor:
     def metrics(self) -> CursorMetrics:
         return CursorMetrics(
             reverse_steps=self._reverse_steps,
+            reverse_unifilar_steps=(
+                self._reverse_unifilar_steps
+            ),
+            partition_reverse_steps=(
+                self._partition_reverse_steps
+            ),
             maximum_stored_floquet_rows=(
                 self._maximum_stored_rows
             ),
@@ -137,6 +147,35 @@ class VerticalConnectionBackwardCursor:
             raise AssertionError(
                 "count cursor and local state time diverged"
             )
+
+        incoming = self.connection.codec.incoming[
+            current.node
+        ]
+        if len(incoming) == 1:
+            chosen = incoming[0]
+            if chosen.length != 1:
+                raise AssertionError(
+                    "local vertical cursor expects physical unit edges"
+                )
+
+            self.count_cursor.step_back()
+            self._maximum_stored_rows = max(
+                self._maximum_stored_rows,
+                self.count_cursor.stored_row_count,
+            )
+            self._reverse_steps += 1
+            self._reverse_unifilar_steps += 1
+
+            # With exactly one reachable incoming physical edge,
+            # D_t(v) = D_(t-1)(u).  The unique block starts at zero,
+            # so vertical rank and fiber size are unchanged.
+            self.state = LocalFiberState(
+                time=current.time - 1,
+                node=chosen.source,
+                rank=current.rank,
+                fiber_size=current.fiber_size,
+            )
+            return chosen
 
         previous_vector = (
             self.count_cursor.previous_vector()
@@ -180,6 +219,7 @@ class VerticalConnectionBackwardCursor:
             self.count_cursor.stored_row_count,
         )
         self._reverse_steps += 1
+        self._partition_reverse_steps += 1
 
         self.state = LocalFiberState(
             time=current.time - 1,
