@@ -269,3 +269,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/fiber_bundle_geometry_gate.py
+
+      - name: Gate normalized vertical reverse-Parry geometry
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/normalized_vertical_dynamics_gate.py
