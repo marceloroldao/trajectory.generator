@@ -35,7 +35,7 @@ def build_machine(params):
         period=3,
         base_phase=0,
         width=63,
-        seed_cache_entries=128,
+        seed_cache_entries=512,
     )
 
     return SeededGraphStateMachine(
