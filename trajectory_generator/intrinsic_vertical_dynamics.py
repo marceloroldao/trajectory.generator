@@ -4,12 +4,13 @@ Minimal reversible completion forces predecessor edge blocks inside each target
 fiber, but it does not force an internal numerical coordinate on those blocks.
 
 This lift chooses the smallest nontrivial periodic internal gauge that does not
-use incoming/outgoing edge order:
+use incoming/outgoing edge order. The public phase is read from the current
+causal source node itself:
 
-    sigma(t) = (-1)^(t mod P)
-    b        = 0
+    sigma(source) = (-1)^phase(source)
+    b             = 0
 
-    local' = sigma(t) * y mod |F(source,t)|
+    local' = sigma(source) * y mod |F(source,t)|
 
 The target edge block is still selected by the causal predecessor edge.  Any
 integer packing of those tagged blocks needs an ordering convention, but that
@@ -38,7 +39,13 @@ class PhaseReflectionVerticalLift(
         if time < 0:
             raise ValueError("time must be >= 0")
 
-        phase = time % self.causal_period
+        # Phase is an endogenous coordinate of the phase-lifted causal node.
+        # The drive therefore does not need the absolute time to choose its
+        # orientation. On every reachable transition phase(source) == t mod P.
+        phase = (
+            self.machine.field.phase_of(edge.source)
+            % self.causal_period
+        )
         orientation = -1 if (phase & 1) else 1
 
         return VerticalDrive(
