@@ -8,6 +8,7 @@ from trajectory_generator.scalar_partition_trajectory import (
 )
 from trajectory_generator.vertical_connection_cursor import (
     VerticalConnectionBackwardCursor,
+    VerticalConnectionForwardCursor,
 )
 
 
@@ -67,6 +68,67 @@ class VerticalConnectionCursorTests(unittest.TestCase):
                         cursor.state,
                         direct,
                     )
+
+    def test_forward_cursor_matches_direct_local_forward(self):
+        machine, connection = self.build()
+        start = ("a", 0)
+        direct = connection.state(
+            start,
+            0,
+            0,
+        )
+        cursor = VerticalConnectionForwardCursor(
+            connection,
+            start,
+            0,
+        )
+
+        for _ in range(10):
+            edges = machine.codec.outgoing[
+                direct.node
+            ]
+            edge = edges[0]
+            direct = connection.forward(
+                direct,
+                edge.label,
+            )
+            cursor_edge = cursor.forward(
+                edge.label
+            )
+            self.assertEqual(
+                cursor_edge,
+                edge,
+            )
+            self.assertEqual(
+                cursor.state,
+                direct,
+            )
+            self.assertEqual(
+                cursor.pack_current(),
+                connection.pack(direct),
+            )
+
+    def test_forward_cursor_survives_forbidden_scalar_oracle(self):
+        machine, connection = self.build()
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError(
+                "forward cursor requested scalar_at"
+            )
+
+        machine.oracle.scalar_at = forbidden
+        cursor = VerticalConnectionForwardCursor(
+            connection,
+            ("a", 0),
+            0,
+        )
+        for _ in range(12):
+            edge = machine.codec.outgoing[
+                cursor.state.node
+            ][0]
+            cursor.forward(edge.label)
+
+        self.assertGreater(cursor.pack_current(), -1)
 
     def test_cursor_reverse_survives_forbidden_scalar_oracle(self):
         machine, connection = self.build()
