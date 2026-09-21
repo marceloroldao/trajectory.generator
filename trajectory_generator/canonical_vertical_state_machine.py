@@ -43,14 +43,13 @@ class CanonicalVerticalStateMachine:
         seed_bits: int,
         seed_to_start_node: Mapping[int, Node],
         edge_symbol: EdgeSymbol,
+        lift_builder=build_canonical_phase_merge_lift,
     ) -> None:
         if seed_bits < 0:
             raise ValueError("seed_bits must be >= 0")
 
         self.partition_machine = partition_machine
-        self.lift = build_canonical_phase_merge_lift(
-            partition_machine
-        )
+        self.lift = lift_builder(partition_machine)
         self.seed_bits = seed_bits
         self.edge_symbol = edge_symbol
 
