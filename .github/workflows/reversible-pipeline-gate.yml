@@ -1,0 +1,33 @@
+name: reversible-pipeline-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  reversible-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run reversible codec unit gates
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m unittest -v             tests.test_algebraic_root_trajectory             tests.test_streaming_colex_trajectory             tests.test_weighted_path_trajectory             tests.test_recurrent_macrograph
+
+      - name: Run automatic endogenous pipeline gate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/automatic_endogenous_pipeline_gate.py
