@@ -544,6 +544,71 @@ causal node by itself.
 
 See `docs/final_state_only_reversible_machine_2026-09-20.md`.
 
+### 25. Causal information gap and minimal reversible lift
+
+`experiments/causal_state_information_gap.py`,
+`trajectory_generator/reversible_fiber_lift.py`, and
+`trajectory_generator/lifted_causal_universe.py`
+
+At the 63-bit frontiers, the old raw causal node retains only a few bits of
+which-history information while many admissible trajectories merge into the same
+node.  The missing history cannot be recovered from the raw node alone.
+
+The reversible completion therefore lifts each raw node `v` at time `t` into
+a vertical fiber of exactly `D(v,t)` states.  This lift is fiberwise minimal:
+fewer states above `v` would necessarily merge at least two admissible
+histories.
+
+GitHub Actions run `35553256436` passed the minimal-lift gate with exact
+semiconjugacy, reversibility, and complete target-fiber partitioning through the
+historical frontiers.
+
+See `docs/causal_state_information_gap_2026-09-20.md`.
+
+### 26. Endogenous periodic vertical dynamics
+
+`trajectory_generator/endogenous_vertical_dynamics.py` and
+`experiments/endogenous_vertical_dynamics_gate.py`
+
+The vertical fiber coordinate is no longer transported as an identity rank.
+For public edge `e` and source-fiber size `n`:
+
+```text
+local' = (sigma(e,t) * y + b(e,t)) mod n
+y'     = incoming_offset(e,t) + local'
+```
+
+with `sigma in {+1,-1}`.
+
+The drive is regenerated from local causal graph invariants and a public
+vertical phase.  The current topological universes have causal period `P=3`
+and use vertical period `2P=6`, so repeated visits to the same causal phase
+alternate between two vertical phases.
+
+Using only `+1/-1` orientation guarantees a permutation for every positive
+fiber size; no `gcd(a,n)=1` condition is required while fiber cardinalities
+change.
+
+GitHub Actions run `35553256436` passed all gates.  The periodic vertical gate
+verified:
+
+```text
+candidate      nontrivial maps   orientation flips   frontier roundtrip
+robust_208          1,216               390                 true
+balanced_221        1,054               294                 true
+long_239            1,062               264                 true
+```
+
+It also verified exact periodicity of the drive, exact lifted reversibility,
+complete frontier sub-fiber partitioning, and projection onto the original
+causal graph.
+
+The current mixing constants are frozen design choices, not an emergent result.
+The next research step is to derive the vertical drive from existing universe
+modes or branch geometry instead of arbitrary mixing coefficients.
+
+See `docs/endogenous_periodic_vertical_dynamics_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -564,37 +629,47 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The **operational target is now satisfied for the tested constrained topological
-families**: a single integer final state plus the public trajectory length and
-fixed universe law regenerates the original admissible trajectory exactly.
+The operational `(final_state, steps) -> trajectory` target remains satisfied
+for the tested constrained topological families.
 
-The support path has also been reduced from a time-indexed vector table to a
-small public recurrence and scalar partition boundaries:
+The stronger native-state program has now advanced from an enumerative
+interpretation to an explicit **horizontal/vertical reversible universe**:
 
 ```text
-public universe
- -> Floquet recurrence
- -> scalar partition boundaries
- -> affine translations
- -> one integer trajectory state
+horizontal:
+    original public causal node
+
+vertical:
+    minimal history-distinguishing fiber coordinate
+    with its own periodic reversible dynamics
 ```
 
-Forward evolution is `S' = S + Delta(edge,t)`; reverse identifies the public
-predecessor block and applies `S = S' - Delta(edge,t)`.
+The lifted dynamics projects exactly onto the original causal graph, while the
+vertical coordinate evolves through a nontrivial period-6 endogenous
+orientation/rotation law.
 
-The main unresolved question is now the stronger **native-state hypothesis**.
-The 63-bit integer is an explicitly constructed enumerative trajectory
-coordinate. The old causal node `(history, topology, phase)` is only a
-projection of it and cannot by itself distinguish all frontier histories.
+This closes two earlier gaps:
 
-The next gate should quantify that information gap exactly — per endpoint,
-average and worst-case — and use it to determine the minimum native causal-state
-dimension required before searching for a universe in which the reversible
-coordinate is intrinsic rather than attached.
+1. the amount of information missing from the raw causal node has been measured;
+2. the required additional coordinate now has a genuine reversible dynamics
+   instead of passive rank transport.
+
+The main unresolved question is **law naturality**.  The current vertical drive
+is public and endogenous once fixed, but its numerical mixing constants were
+chosen by design.
+
+The next gate should derive or search the vertical law from structures already
+present in the universe — Floquet modes, predecessor multiplicities,
+information-clock phase, or other causal invariants — and compare the smallest
+exact law families at periods `P`, `2P`, `4P`, and recurrent-event periods.
 
 ## Quick start
 
 ```bash
+python experiments/causal_state_information_gap.py
+python experiments/reversible_fiber_lift_gate.py
+python experiments/minimal_reversible_causal_lift_gate.py
+python experiments/endogenous_vertical_dynamics_gate.py
 python experiments/translation_address_gate.py
 python experiments/scalar_partition_gate.py
 python experiments/final_state_only_gate.py
