@@ -41,7 +41,8 @@ jobs:
             tests.test_canonical_vertical_law \
             tests.test_canonical_vertical_state_machine \
             tests.test_minimal_reversible_completion \
-            tests.test_reversible_natural_extension
+            tests.test_reversible_natural_extension \
+            tests.test_intrinsic_vertical_dynamics
 
       - name: Run automatic recurrent-core gate
         env:
@@ -132,3 +133,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/natural_extension_gauge_gate.py
+
+      - name: Gate phase-reflection final-state recovery
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/phase_reflection_final_state_gate.py
