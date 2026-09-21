@@ -141,6 +141,32 @@ class ComposedVerticalConnectionTests(unittest.TestCase):
                     direct,
                 )
 
+                period_index, phase_offset = divmod(
+                    start_time,
+                    machine.field.period,
+                )
+                if (
+                    phase_offset
+                    == plan.source_phase_offset
+                ):
+                    base_vector = (
+                        machine.field.period_field.vector_at(
+                            period_index
+                        )
+                    )
+                    floquet_compiled = (
+                        composed.embedding_from_period_base_vector(
+                            plan,
+                            start_time=start_time,
+                            base_vector=base_vector,
+                            target_size=direct.target_size,
+                        )
+                    )
+                    self.assertEqual(
+                        floquet_compiled,
+                        direct,
+                    )
+
     def test_composed_block_width_equals_source_fiber(self):
         machine, exact, composed = self.build()
         source = exact.state(
