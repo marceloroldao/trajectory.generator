@@ -110,6 +110,35 @@ class FloquetBackwardCountCursor:
             self.field.period - 1,
         )
 
+    def period_base_vector_at_back(
+        self,
+        steps: int,
+    ) -> tuple[tuple[int, ...], int]:
+        """Return compact base-period vector plus physical phase at time-steps."""
+        if steps < 0:
+            raise ValueError("steps must be >= 0")
+        if steps > self.time:
+            raise ValueError("cannot look before t=0")
+
+        target_time = self.time - steps
+        period_index, phase_offset = divmod(
+            target_time,
+            self.field.period,
+        )
+        period_steps = (
+            self.period_cursor.time
+            - period_index
+        )
+        if period_steps < 0:
+            raise AssertionError(
+                "target period lies ahead of backward cursor"
+            )
+
+        base = self.period_cursor.vector_at_back(
+            period_steps
+        )
+        return base, phase_offset
+
     def vector_at_back(
         self,
         steps: int,
