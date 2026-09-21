@@ -84,6 +84,56 @@ class FloquetCountFieldTests(unittest.TestCase):
             )
             cursor.step_back()
 
+    def test_floquet_cursor_direct_lookback_and_jump(self):
+        graph = phase_graph()
+        field = FloquetCountFieldRecurrence(
+            graph,
+            start_nodes=(("a", 0),),
+            phase_of=lambda node: node[1],
+            period=3,
+            cache_rows=1,
+        )
+
+        final_time = 120
+        direct = [field.initial_vector]
+        for _ in range(final_time):
+            direct.append(
+                field.step_vector(direct[-1])
+            )
+
+        cursor = field.backward_cursor(final_time)
+
+        for distance in range(13):
+            base, phase = (
+                cursor.period_base_vector_at_back(
+                    distance
+                )
+            )
+            reconstructed = (
+                field.expand_period_vector(
+                    base,
+                    phase,
+                )
+            )
+            self.assertEqual(
+                reconstructed,
+                direct[final_time - distance],
+            )
+            self.assertEqual(
+                cursor.vector_at_back(distance),
+                direct[final_time - distance],
+            )
+
+        cursor.step_back_many(17)
+        self.assertEqual(
+            cursor.time,
+            final_time - 17,
+        )
+        self.assertEqual(
+            cursor.current_vector(),
+            direct[final_time - 17],
+        )
+
     def test_floquet_codec_roundtrip(self):
         graph = phase_graph()
         codec = build_floquet_path_codec(
