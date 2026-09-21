@@ -653,12 +653,82 @@ For every frontier candidate, all five sampled final integers mapped to a
 different trajectory than the old static rank codec. Thus the vertical
 coordinate is operationally dynamic, not passive rank transport.
 
-The frozen law also has a structural derivation:
+The frozen law also has a structural derivation inside that restricted ordered-graph grammar:
 
 1. minimum-period non-constant orientation -> public `phase`;
 2. target-fiber predecessor partition coordinate -> `incoming_index`.
 
+Later general-completion gates show that this law is **not uniquely forced by reversibility**. It is a valid compact gauge fixing; internal fiber permutations remain gauge freedom whenever a fiber has more than one state.
+
 See `docs/canonical_vertical_law_2026-09-20.md`.
+
+### 28. General minimal reversible completion and gauge theorem
+
+`trajectory_generator/minimal_reversible_completion.py`,
+`trajectory_generator/reversible_natural_extension.py`,
+`experiments/general_reversible_completion_gate.py`, and
+`experiments/natural_extension_gauge_gate.py`
+
+For a raw causal node `v` at time `t`, let `H_t(v)` be the admissible histories ending there. Exact reversible recovery forces:
+
+```text
+|F_t(v)| >= |H_t(v)|
+```
+
+and the minimal lift has equality.
+
+Each incoming edge `e:u->v` contributes a disjoint target sub-fiber of forced size:
+
+```text
+|Image_t(e)| = |F_t(u)|
+```
+
+But the numerical permutation inside that block is not forced. If a fiber has more than one state, identity, reflection, periodic reflection and other bijections can describe the same history dynamics.
+
+GitHub Actions run `35554542838` passed five general graph families, including a negative control whose fibers remain singleton. In that control the gauge is trivial; in every graph with nontrivial fibers the vertical law was non-unique.
+
+The coordinate-free invariant object is the admissible history space. Different vertical coordinates are charts related by:
+
+```text
+G_(t+1) o F_e = F'_e o G_t
+```
+
+The natural-extension gate verified that conjugacy explicitly.
+
+See `docs/general_minimal_reversible_completion_2026-09-20.md`.
+
+### 29. Intrinsic phase-reflection gauge
+
+`trajectory_generator/intrinsic_vertical_dynamics.py` and
+`experiments/phase_reflection_final_state_gate.py`
+
+Once vertical permutations are recognized as gauge freedom, the internal law can be simplified further:
+
+```text
+sigma(t) = (-1)^(t mod P)
+b        = 0
+
+local' = sigma(t) * y mod source_fiber_size
+```
+
+For the current universes `P=3`.
+
+The predecessor-edge partition remains necessary for reversibility, but predecessor ordering is now only part of integer block serialization, not the internal vertical permutation.
+
+GitHub Actions run `35554636742` passed the complete workflow and final-state-only frontier gates:
+
+```text
+candidate      small mapping changes   frontier mapping changes
+robust_208            263 / 288                 5 / 5
+balanced_221          246 / 270                 5 / 5
+long_239              213 / 234                 5 / 5
+```
+
+All exhaustive small-horizon and frontier roundtrips remained exact from only `(final_state, steps) + public law`.
+
+This is now the preferred intrinsic vertical gauge: nontrivial, coefficient-free, minimum-period, and independent of predecessor ordering in its internal permutation.
+
+See `docs/intrinsic_phase_reflection_2026-09-20.md`.
 
 ## Fundamental limit
 
@@ -687,43 +757,49 @@ The operational target remains satisfied:
     -> exact admissible trajectory
 ```
 
-The stronger native-state program has now reached a simpler form than the
-earlier period-6 mixer.
+The reversible-state picture is now separated into invariant structure and coordinate gauge.
 
-The reversible universe is represented as:
+### Forced structure
 
 ```text
-horizontal = original public causal node
-vertical   = minimal history-distinguishing causal coordinate
+history space
+  -> horizontal causal projection
+  -> minimal fiber size |H_t(v)|
+  -> predecessor-edge sub-fiber cardinalities
 ```
 
-and the vertical coordinate has its own coefficient-free periodic dynamics:
+These are fixed by exact reversible completion.
+
+### Gauge structure
+
+```text
+numerical vertical coordinate
+internal fiber permutation
+integer block ordering
+```
+
+These are not uniquely fixed when a fiber has more than one state. The natural-extension gates show that different gauges are related by exact time-dependent conjugacies.
+
+The preferred current internal gauge is therefore the simpler phase reflection:
 
 ```text
 sigma(t) = (-1)^(t mod P)
-b(e)     = incoming_index(e)
+b        = 0
 P        = 3
 ```
 
-This law is enough to preserve exact reversibility and exact projection through
-the historical frontiers `208 / 221 / 239`. It also changes the mapping
-between final integers and trajectories relative to the old static rank codec,
-while preserving final-state-only recovery.
+It preserves exact final-state-only recovery through frontiers `208 / 221 / 239` while removing predecessor ordering from the internal vertical permutation.
 
-The main unresolved question has therefore narrowed again. It is no longer
-whether the vertical coordinate can have a native reversible dynamics; it can.
-It is whether the phase/merge law can be shown to follow from a **general
-minimal reversible-completion principle**, rather than from two explicit design
-axioms.
+The next research problem is no longer to prove one unique numerical vertical law from reversibility alone; the general theorem rules that out for nontrivial fibers.
 
-The next research direction should formalize that principle: characterize the
-minimal reversible extension of a finite many-to-one causal graph, and determine
-whether phase orientation plus predecessor-partition rotation appears as a
-canonical or unique completion under natural symmetry/locality constraints.
+The next meaningful target is **gauge selection under additional invariant principles**: graph-relabeling equivariance, locality, minimum description length, information-clock compatibility, and automorphism symmetry. The goal is to identify which properties belong to the universe itself and which belong only to the coordinates used to serialize it.
 
 ## Quick start
 
 ```bash
+python experiments/general_reversible_completion_gate.py
+python experiments/natural_extension_gauge_gate.py
+python experiments/phase_reflection_final_state_gate.py
 python experiments/canonical_vertical_law_search.py
 python experiments/canonical_vertical_final_state_gate.py
 python experiments/causal_state_information_gap.py
