@@ -62,7 +62,8 @@ jobs:
             tests.test_exact_vertical_connection \
             tests.test_vertical_connection_cursor \
             tests.test_seeded_vertical_connection \
-            tests.test_information_clock_trace
+            tests.test_information_clock_trace \
+            tests.test_composed_vertical_connection
 
       - name: Run automatic recurrent-core gate
         env:
@@ -327,3 +328,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/information_clock_trace_gate.py
+
+      - name: Gate composed vertical information-clock macro-blocks
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/composed_vertical_macroblock_gate.py
