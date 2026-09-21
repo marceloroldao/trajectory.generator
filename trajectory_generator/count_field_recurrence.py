@@ -332,6 +332,39 @@ class BackwardCountCursor:
         previous = self.time - 1
         return self.field.vector_at(previous)
 
+    def vector_at_back(
+        self,
+        steps: int,
+    ) -> tuple[int, ...]:
+        """Return D_(time-steps) from the current recurrence window when possible."""
+        if steps < 0:
+            raise ValueError("steps must be >= 0")
+        if steps > self.time:
+            raise ValueError("cannot look before t=0")
+
+        target = self.time - steps
+        if steps == 0:
+            return self.current_vector()
+
+        if self.rows is not None:
+            oldest = self.time - len(self.rows) + 1
+            if target >= oldest:
+                return self.rows[target - oldest]
+
+        return self.field.vector_at(target)
+
+    def step_back_many(
+        self,
+        steps: int,
+    ) -> None:
+        """Move backward several recurrence samples without exposing intermediates."""
+        if steps < 0:
+            raise ValueError("steps must be >= 0")
+        if steps > self.time:
+            raise ValueError("cannot step before t=0")
+        for _ in range(steps):
+            self.step_back()
+
     def step_back(self) -> None:
         if self.time <= 0:
             raise ValueError("cannot step before t=0")
