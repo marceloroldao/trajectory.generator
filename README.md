@@ -312,6 +312,29 @@ physical step at a time.
 
 See `docs/streaming_colex_trajectory_2026-09-20.md`.
 
+### 18. Streaming weighted information-clock address
+
+`trajectory_generator/weighted_path_trajectory.py` and
+`experiments/information_clock_streaming_codec.py`
+
+The two-state information-clock macrograph is now operationally addressable.
+For a public weighted macrograph, exact-length paths ending at each branch state
+are counted by a public dynamic program. Incoming macro-edges define contiguous
+rank blocks.
+
+Forward evolution inserts the predecessor rank into the selected edge block;
+reverse evolution identifies the last macro-edge from the block containing the
+current rank. The deterministic physical path attached to that public edge is
+then regenerated rather than stored.
+
+For the current macrograph with physical edge lengths `1, 12, 2, 5`, the first
+complete exact-length family that exceeds 63 bits occurs at physical time 234.
+The conservative streaming frontier is therefore 233 physical steps. Exact
+path counts are non-monotone by physical length; the isolated `T=235` family
+fits again, but is not promoted as the conservative prefix-safe frontier.
+
+See `docs/information_clock_streaming_codec_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -332,27 +355,30 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target remains a **stable endogenous computational universe** in
-which state, causal memory, law, transition, and recurrent structure remain
-recoverable from public dynamics.
+The project now has three complementary operational references:
 
-The strongest operational result is now the streaming colex trajectory. For the
-same constrained family already studied by the hierarchical codec, it reaches
-the exact enumerative capacity while supporting online forward updates and local
-reverse branch decisions. At `W=63, K=5`, the exact frontier remains 14,082
-steps with about 99.9936% occupancy of the 63-bit state space.
+1. **streaming colex:** exact enumerative capacity for the <=K-change family,
+   with local stepwise reverse;
+2. **algebraic root trajectory:** direct field-geometric branch detection with
+   constant `log2(K!)` asymptotic redundancy;
+3. **weighted information-clock address:** local reversible addressing of
+   entropy-bearing macro-events while deterministic physical flights are
+   regenerated from the public universe.
 
-The algebraic root trajectory remains a second reference construction: it is
-less dense but exposes branch events through a direct field equation. The next
-research gate is therefore not another raw capacity search. It is to connect
-these two properties: **colex-level state occupancy with algebraic/endogenous
-local geometry**, and then attach that reversible event layer to the
-information-clock universe where deterministic flights and entropy-bearing
-branch events are already separated.
+The strongest immediate next gate is to remove the manually isolated two-state
+macrograph from the third construction. The recurrent core, branch states,
+deterministic flights, weighted edges, and their rank blocks should be derived
+automatically from the endogenous universe graph and passed directly into the
+weighted streaming codec. That would make the path
+
+`public universe -> recurrent core -> information clock -> reversible address`
+
+fully automatic rather than assembled experiment by experiment.
 
 ## Quick start
 
 ```bash
+python experiments/information_clock_streaming_codec.py
 python experiments/streaming_colex_trajectory_gate.py
 python experiments/algebraic_root_trajectory_gate.py
 python experiments/information_clock_macrograph.py
