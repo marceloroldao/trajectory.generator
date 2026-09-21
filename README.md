@@ -235,6 +235,43 @@ This gives the project an explicit distinction between physical time `t` and inf
 
 See `docs/recurrent_orbit_core_2026-09-02.md` and `docs/information_clock_macrograph_2026-09-02.md`.
 
+### 16. Algebraic root trajectory
+
+`trajectory_generator/algebraic_root_trajectory.py` and
+`experiments/algebraic_root_trajectory_gate.py`
+
+For a trajectory with at most `K` innovation events, the state is a monic
+degree-`K` polynomial over a public prime field:
+
+```text
+P(z) = z^(K-r) * product(z - (t_i + 1))
+```
+
+An innovation replaces one zero root with the current public step address.
+Reverse decoding is local:
+
+```text
+e_t = 1  iff  P_(t+1)(t+1) = 0 mod p
+```
+
+If the root is present, synthetic division removes it and multiplication by
+`z` restores the predecessor. The decoder therefore needs only current state,
+public time, and public universe parameters; it does not reconstruct the
+reachable manifold or consult a trajectory table.
+
+For `K=5`, reference packed-state frontiers include:
+
+```text
+W=63  -> 6,202 steps
+W=128 -> 50,858,998 steps
+```
+
+The representation is not information-theoretically optimal, but for fixed
+`K` its asymptotic redundancy is only about `log2(K!)` bits
+(`~6.9069` bits for `K=5`). Reverse work is `O(K)` per physical step.
+
+See `docs/algebraic_root_trajectory_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -255,13 +292,16 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target is a **stable endogenous computational universe** in which state, finite causal memory, policy, law, transition, and recurrent orbit structure all participate while every adaptive choice remains recoverable from the public dynamics.
+The current target remains a **stable endogenous computational universe** in which state, causal memory, law, transition, and recurrent structure remain reversible from public dynamics.
 
-The strongest new structural result is that the dominant recurrent language can be condensed to entropy-bearing branch events plus deterministic flights without changing its asymptotic information rate. The next experiment should turn that information clock into an operational variable-length macro-event rank/unrank codec and verify full regeneration of recurrent-basin trajectories from public physical length and a final address.
+The strongest operational result is now the algebraic root trajectory: sparse innovation positions can be regenerated from final state and public physical length with a local `O(K)` reverse law, without a trajectory table or reachable-manifold reconstruction.
+
+The next gate is to reduce the constant `log2(K!)` redundancy of the polynomial coefficient state **without losing local root insertion/removal**. In parallel, this algebraic event layer should be connected back to the information-clock/endogenous-universe experiments so that deterministic flights are handled by the public dynamics while entropy-bearing branch events are carried by an exact reversible algebraic layer.
 
 ## Quick start
 
 ```bash
+python experiments/algebraic_root_trajectory_gate.py
 python experiments/information_clock_macrograph.py
 python experiments/recurrent_orbit_core.py
 python experiments/hybrid_memory34_search.py --bank-size 256 --seed 12648430
