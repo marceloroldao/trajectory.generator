@@ -94,9 +94,25 @@ def main():
                 break
 
         phase_window_rows = len(field.reduced_coefficients)
-        floquet_operational = (
-            field.basis_integer_count
-            + field.phase_state_count * phase_window_rows
+        phase_window_integers = (
+            field.phase_state_count * phase_window_rows
+        )
+        full_decode_pair_integers = (
+            2 * field.reachable_state_count
+        )
+        cache_integers = (
+            field.cache_rows * field.phase_state_count
+        )
+        persistent_seed_integers = (
+            field.reachable_state_count
+            + field.phase_state_count
+            + field.order
+        )
+        floquet_resident_count_integers = (
+            phase_window_integers
+            + full_decode_pair_integers
+            + cache_integers
+            + persistent_seed_integers
         )
         direct_entries = (
             field.reachable_state_count
@@ -122,12 +138,17 @@ def main():
             "transient_factor_power",
             field.transient_factor_power,
             "coefficients", field.coefficients,
-            "basis_integers", field.basis_integer_count,
+            "retained_basis_integers",
+            field.basis_integer_count,
+            "derived_basis_integers",
+            field.derived_basis_integer_count,
             "reverse_window_rows", phase_window_rows,
-            "operational_fixed_integers", floquet_operational,
+            "reverse_window_integers", phase_window_integers,
+            "resident_count_integers_estimate",
+            floquet_resident_count_integers,
             "direct_frontier_integers", direct_entries,
-            "storage_reduction",
-            direct_entries / floquet_operational,
+            "resident_count_storage_reduction",
+            direct_entries / floquet_resident_count_integers,
             "count_identity", count_identity,
             "address_identity", address_identity,
         )
