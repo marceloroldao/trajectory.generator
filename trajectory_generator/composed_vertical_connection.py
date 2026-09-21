@@ -42,6 +42,8 @@ class CompiledComposedPath:
     offset_weights: tuple[int, ...]
     base_offset_weights: tuple[int, ...]
     base_source_weights: tuple[int, ...]
+    base_offset_terms: tuple[tuple[int, int], ...]
+    base_source_terms: tuple[tuple[int, int], ...]
 
 
 @dataclass(frozen=True)
@@ -193,6 +195,19 @@ class ComposedVerticalConnection:
         source_weights = [0] * dimension
         source_weights[source_index] = 1
 
+        base_offset_weights = (
+            self._project_functional_to_base(
+                weights,
+                source_phase_offset,
+            )
+        )
+        base_source_weights = (
+            self._project_functional_to_base(
+                source_weights,
+                source_phase_offset,
+            )
+        )
+
         return CompiledComposedPath(
             edge_labels=labels,
             source=source,
@@ -201,17 +216,21 @@ class ComposedVerticalConnection:
             source_index=source_index,
             source_phase_offset=source_phase_offset,
             offset_weights=tuple(weights),
-            base_offset_weights=(
-                self._project_functional_to_base(
-                    weights,
-                    source_phase_offset,
+            base_offset_weights=base_offset_weights,
+            base_source_weights=base_source_weights,
+            base_offset_terms=tuple(
+                (index, weight)
+                for index, weight in enumerate(
+                    base_offset_weights
                 )
+                if weight
             ),
-            base_source_weights=(
-                self._project_functional_to_base(
-                    source_weights,
-                    source_phase_offset,
+            base_source_terms=tuple(
+                (index, weight)
+                for index, weight in enumerate(
+                    base_source_weights
                 )
+                if weight
             ),
         )
 
@@ -237,20 +256,14 @@ class ComposedVerticalConnection:
             )
 
         source_size = sum(
-            weight * value
-            for weight, value in zip(
-                plan.base_source_weights,
-                base_vector,
-            )
-            if weight and value
+            weight * base_vector[index]
+            for index, weight
+            in plan.base_source_terms
         )
         start = sum(
-            weight * value
-            for weight, value in zip(
-                plan.base_offset_weights,
-                base_vector,
-            )
-            if weight and value
+            weight * base_vector[index]
+            for index, weight
+            in plan.base_offset_terms
         )
         end = start + source_size
 
