@@ -33,7 +33,10 @@ from .exact_vertical_connection import (
     LocalFiberState,
 )
 from .weighted_path_trajectory import WeightedEdge
-from .vertical_connection_cursor import VerticalConnectionBackwardCursor
+from .vertical_connection_cursor import (
+    VerticalConnectionBackwardCursor,
+    VerticalConnectionForwardCursor,
+)
 
 
 Node = Hashable
@@ -142,10 +145,11 @@ class SeededVerticalConnectionMachine:
             0,
         )
 
-    def encode(
+    def encode_direct(
         self,
         bits: Sequence[int],
     ) -> tuple[int, int]:
+        """Reference local encoder using scalar partition functionals."""
         values = [int(bit) for bit in bits]
         if any(bit not in (0, 1) for bit in values):
             raise ValueError("bits must be binary")
@@ -176,6 +180,86 @@ class SeededVerticalConnectionMachine:
             )
 
         return self.connection.pack(local), steps
+
+    def encode(
+        self,
+        bits: Sequence[int],
+    ) -> tuple[int, int]:
+        """Optimized encode using one forward public count vector."""
+        values = [int(bit) for bit in bits]
+        if any(bit not in (0, 1) for bit in values):
+            raise ValueError("bits must be binary")
+
+        steps = len(values)
+        if steps < self.seed_bits:
+            return (
+                self._integer_from_bits(values),
+                steps,
+            )
+
+        seed = self._integer_from_bits(
+            values[: self.seed_bits]
+        )
+        start_node = self.seed_to_start_node[seed]
+        cursor = VerticalConnectionForwardCursor(
+            self.connection,
+            start_node,
+            0,
+        )
+
+        for bit in values[self.seed_bits :]:
+            edge = self.outgoing_by_symbol[
+                cursor.state.node
+            ].get(bit)
+            if edge is None:
+                raise ValueError(
+                    "bit is not admissible from current public state"
+                )
+            cursor.forward(edge.label)
+
+        return cursor.pack_current(), steps
+
+    def encode_with_cursor_metrics(
+        self,
+        bits: Sequence[int],
+    ):
+        values = [int(bit) for bit in bits]
+        if any(bit not in (0, 1) for bit in values):
+            raise ValueError("bits must be binary")
+
+        steps = len(values)
+        if steps < self.seed_bits:
+            return (
+                self._integer_from_bits(values),
+                steps,
+                None,
+            )
+
+        seed = self._integer_from_bits(
+            values[: self.seed_bits]
+        )
+        start_node = self.seed_to_start_node[seed]
+        cursor = VerticalConnectionForwardCursor(
+            self.connection,
+            start_node,
+            0,
+        )
+
+        for bit in values[self.seed_bits :]:
+            edge = self.outgoing_by_symbol[
+                cursor.state.node
+            ].get(bit)
+            if edge is None:
+                raise ValueError(
+                    "bit is not admissible from current public state"
+                )
+            cursor.forward(edge.label)
+
+        return (
+            cursor.pack_current(),
+            steps,
+            cursor.metrics,
+        )
 
     def _finish_seeded_decode(
         self,
