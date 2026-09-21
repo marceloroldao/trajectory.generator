@@ -230,3 +230,19 @@ def canonical_law_specs():
 
     specs.sort(key=lambda spec: spec.description_cost)
     return tuple(specs)
+
+# Minimum law selected by the coefficient-free grammar and validated across all
+# three historical topological candidates.
+CANONICAL_PHASE_MERGE_SPEC = CanonicalVerticalLawSpec(
+    period_multiple=1,
+    orientation_features=("phase",),
+    shift_features=("incoming_index",),
+)
+
+
+def build_canonical_phase_merge_lift(machine):
+    """Build the frozen minimal phase/merge vertical lift."""
+    return CanonicalPeriodicVerticalLift(
+        machine,
+        CANONICAL_PHASE_MERGE_SPEC,
+    )
