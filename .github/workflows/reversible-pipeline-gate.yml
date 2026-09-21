@@ -281,3 +281,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/exact_vertical_connection_gate.py
+
+      - name: Gate final-state bit recovery through local fibers
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/seeded_vertical_connection_gate.py
