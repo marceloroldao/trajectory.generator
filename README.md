@@ -726,9 +726,91 @@ long_239              213 / 234                 5 / 5
 
 All exhaustive small-horizon and frontier roundtrips remained exact from only `(final_state, steps) + public law`.
 
-This is now the preferred intrinsic vertical gauge: nontrivial, coefficient-free, minimum-period, and independent of predecessor ordering in its internal permutation.
+This remains a useful simple gauge representative, but the later full fiber-gauge theorem shows that no nontrivial numeric permutation can be chart-independent on an unstructured fiber with three or more states.
 
 See `docs/intrinsic_phase_reflection_2026-09-20.md`.
+
+### 30. Full fiber-gauge no-go and reversible-completion groupoid
+
+`trajectory_generator/gauge_invariant_vertical_law.py`,
+`trajectory_generator/reversible_completion_groupoid.py`,
+`experiments/gauge_invariance_no_go_gate.py`, and
+`experiments/reversible_completion_groupoid_gate.py`
+
+For an unstructured fiber with `n` elements, every relabeling in `S_n` is an admissible vertical gauge change. A concrete numeric vertical permutation is chart-independent only if it commutes with every element of `S_n`, i.e. lies in `Z(S_n)`.
+
+For `n >= 3`:
+
+```text
+Z(S_n) = {identity}
+```
+
+So a nontrivial **numeric** vertical permutation cannot be an intrinsic observable of a generic unstructured fiber. This is a mathematical no-go, not a decoder limitation.
+
+The coordinate-free reversible object is the admissible-history natural extension. Minimal fiber charts are related by unique history-preserving gauge changes
+
+```text
+G_AB(t) = chart_B(t) o chart_A(t)^-1
+```
+
+which satisfy identity, inverse, composition and transition-conjugacy laws. GitHub Actions run `35555298953` passed the full groupoid gate and the real topological chart-equivalence gate.
+
+At the historical frontiers, static rank, phase reflection and phase+merge used different integer coordinates while preserving the same underlying trajectories after gauge conversion.
+
+See `docs/reversible_completion_gauge_structure_2026-09-20.md`.
+
+### 31. Gauge-covariant information-event vertical action
+
+`trajectory_generator/gauge_covariant_vertical_event.py` and
+`experiments/gauge_covariant_vertical_event_gate.py`
+
+The gauge no-go still permits nontrivial **gauge-covariant** dynamics. Under a chart change `g`, a representative transforms by conjugation:
+
+```text
+f -> g f g^-1
+```
+
+so its conjugacy class is invariant.
+
+The strongest current vertical event law is now stated without choosing an absolute numeric coordinate:
+
+```text
+deterministic causal source:
+    identity conjugacy class
+
+information-event source (out_degree > 1):
+    fixed-point-minimal involution conjugacy class
+```
+
+The branch class is derived from three explicit axioms:
+
+1. the local action is self-inverse;
+2. physical content is gauge-covariant, so only cycle type is invariant;
+3. an information event acts on the maximum possible number of vertical states.
+
+This uniquely gives maximal pairing:
+
+```text
+n even -> n/2 transpositions, 0 fixed points
+n odd  -> (n-1)/2 transpositions, 1 fixed point
+```
+
+A convenient chart representative is `y -> n-1-y`, but the physical statement is the conjugacy class, not that formula.
+
+GitHub Actions run `35555298953` passed this gate for all three universes with exact final-state roundtrips. Nontrivial branch classes were observed `132 / 92 / 76` times for `robust / balanced / long` in the operational window, while deterministic actions remained identity.
+
+### 32. Conditional cyclic fibers and origin no-go
+
+`trajectory_generator/structured_fiber_naturality.py` and
+`trajectory_generator/fiber_group_structure_no_go.py`
+
+If a history fiber were endowed with a canonical cyclic-group structure `Z_n`, inversion `y -> -y` would become natural under every group automorphism. That conditional theorem passed exact finite checks.
+
+But cardinality alone cannot produce such a group structure. A group requires a distinguished identity element; for a bare `n`-element set with `n > 1`, no point is fixed by every relabeling in `S_n`.
+
+Therefore a preferred numeric representative requires **additional public fiber structure** supplied by the universe itself. It cannot be derived from the number of histories alone.
+
+GitHub Actions run `35555298953` passed both the cyclic naturality gate and the cyclic-origin no-go gate.
 
 ## Fundamental limit
 
@@ -757,46 +839,67 @@ The operational target remains satisfied:
     -> exact admissible trajectory
 ```
 
-The reversible-state picture is now separated into invariant structure and coordinate gauge.
+The strongest current formulation separates the reversible object from its numerical chart.
 
-### Forced structure
+### Intrinsic / forced structure
 
 ```text
-history space
-  -> horizontal causal projection
-  -> minimal fiber size |H_t(v)|
-  -> predecessor-edge sub-fiber cardinalities
+admissible-history natural extension
+    -> append/remove public causal edge
+    -> horizontal projection to raw causal state
+    -> minimal fiber cardinality |H_t(v)|
+    -> forced predecessor-edge image cardinalities
 ```
 
 These are fixed by exact reversible completion.
 
-### Gauge structure
+### Gauge / coordinate structure
 
 ```text
-numerical vertical coordinate
-internal fiber permutation
-integer block ordering
+integer vertical labels
+ordering of predecessor blocks
+specific numeric permutation inside a fiber
+packed final_state value
 ```
 
-These are not uniquely fixed when a fiber has more than one state. The natural-extension gates show that different gauges are related by exact time-dependent conjugacies.
+These are chart choices. Minimal charts form a gauge groupoid and are related by exact time-dependent conjugacies.
 
-The preferred current internal gauge is therefore the simpler phase reflection:
+For an unstructured fiber with `n >= 3`, the full gauge group is `S_n` and `Z(S_n)` is trivial. Therefore no nontrivial numeric vertical permutation can be completely chart-independent.
+
+### Strongest current nontrivial vertical statement
+
+The causal universe itself supplies a coordinate-free information event:
 
 ```text
-sigma(t) = (-1)^(t mod P)
-b        = 0
-P        = 3
+out_degree(source) > 1
 ```
 
-It preserves exact final-state-only recovery through frontiers `208 / 221 / 239` while removing predecessor ordering from the internal vertical permutation.
+At such an event, the current proposal assigns the unique **fixed-point-minimal involution conjugacy class**. Deterministic states receive the identity class. This is derived from self-inversion, gauge covariance and maximal state participation.
 
-The next research problem is no longer to prove one unique numerical vertical law from reversibility alone; the general theorem rules that out for nontrivial fibers.
+A numeric map such as
 
-The next meaningful target is **gauge selection under additional invariant principles**: graph-relabeling equivariance, locality, minimum description length, information-clock compatibility, and automorphism symmetry. The goal is to identify which properties belong to the universe itself and which belong only to the coordinates used to serialize it.
+```text
+y -> n - 1 - y
+```
+
+is only one representative of that class.
+
+GitHub Actions run `35555298953` passed all 29 scientific gates, including the general completion theorem, full fiber-gauge no-go, gauge groupoid, real topological chart equivalence, conditional cyclic-group naturality, cyclic-origin no-go, and the gauge-covariant information-event final-state gates.
+
+The remaining research question is now sharply defined: **does the public universe generate additional intrinsic structure on each history fiber that selects a preferred representative?** Possible sources include recursive prefix structure, symbol-preserving algebra, recurrent information-clock structure, or another endogenous composition law. If no such structure exists, the conjugacy class rather than a particular integer permutation is the correct final physical description.
 
 ## Quick start
 
 ```bash
+python experiments/branch_reflection_vertical_gate.py
+python experiments/vertical_gauge_automorphism_gate.py
+python experiments/gauge_invariance_no_go_gate.py
+python experiments/reversible_completion_groupoid_gate.py
+python experiments/topological_gauge_equivalence_gate.py
+python experiments/vertical_conjugacy_class_gate.py
+python experiments/cyclic_fiber_naturality_gate.py
+python experiments/fiber_group_structure_no_go_gate.py
+python experiments/gauge_covariant_vertical_event_gate.py
 python experiments/general_reversible_completion_gate.py
 python experiments/natural_extension_gauge_gate.py
 python experiments/phase_reflection_final_state_gate.py
