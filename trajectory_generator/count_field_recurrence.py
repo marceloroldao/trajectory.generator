@@ -28,8 +28,9 @@ where
 
     m(x) = x^d - sum(c_i x^i).
 
-The result is a linear combination of only the first d count vectors. Storage
-is therefore O(V*d), independent of the requested horizon T, plus an optional
+The result is a linear combination of only the first d count vectors. The first d vectors may either be retained for faster queries or regenerated
+from D_0 and the public graph on demand. Persistent count-row storage is thus
+either O(V*d) or O(V), independent of the requested horizon T, plus an optional
 small bounded LRU row cache.
 
 This is public-law state, not trajectory-specific history.
@@ -307,10 +308,7 @@ class BackwardCountCursor:
         if self.rows is not None:
             return self.rows[-1]
 
-        if self.time >= self.field.order:
-            return self.field.vector_at(self.time)
-
-        return self.field.basis_vectors[self.time]
+        return self.field.vector_at(self.time)
 
     def previous_vector(self) -> tuple[int, ...]:
         if self.time <= 0:
@@ -320,9 +318,6 @@ class BackwardCountCursor:
             return self.rows[-2]
 
         previous = self.time - 1
-        if previous < self.field.order:
-            return self.field.basis_vectors[previous]
-
         return self.field.vector_at(previous)
 
     def step_back(self) -> None:
@@ -381,6 +376,7 @@ class CountFieldRecurrence:
         *,
         start_nodes: Sequence[Node],
         cache_rows: int = 4,
+        retain_basis: bool = True,
     ) -> None:
         if cache_rows < 0:
             raise ValueError("cache_rows must be >= 0")
@@ -407,13 +403,19 @@ class CountFieldRecurrence:
 
         (
             self.coefficients,
-            self.basis_vectors,
+            derived_basis,
         ) = _derive_minimal_vector_recurrence(
             self.outgoing,
             self.initial_vector,
         )
 
         self.order = len(self.coefficients)
+        self.retain_basis = bool(retain_basis)
+        self.basis_vectors = (
+            derived_basis
+            if self.retain_basis
+            else ()
+        )
         self.cache_rows = cache_rows
         self._cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
 
@@ -434,6 +436,12 @@ class CountFieldRecurrence:
 
     @property
     def basis_integer_count(self) -> int:
+        if not self.retain_basis:
+            return 0
+        return self.reachable_state_count * self.order
+
+    @property
+    def derived_basis_integer_count(self) -> int:
         return self.reachable_state_count * self.order
 
     @property
@@ -470,7 +478,7 @@ class CountFieldRecurrence:
             self._cache.move_to_end(t)
             return cached
 
-        if t < self.order:
+        if self.retain_basis and t < self.order:
             vector = self.basis_vectors[t]
             return self._remember(t, vector)
 
@@ -480,13 +488,26 @@ class CountFieldRecurrence:
         )
 
         out = [0] * self.reachable_state_count
-        for i, weight in enumerate(weights):
-            if not weight:
-                continue
-            basis = self.basis_vectors[i]
-            for j, value in enumerate(basis):
-                if value:
-                    out[j] += weight * value
+
+        if self.retain_basis:
+            for i, weight in enumerate(weights):
+                if not weight:
+                    continue
+                basis = self.basis_vectors[i]
+                for j, value in enumerate(basis):
+                    if value:
+                        out[j] += weight * value
+        else:
+            # Regenerate D_0..D_(d-1) from the public graph while
+            # accumulating only the weighted combination needed for D_t.
+            basis = self.initial_vector
+            for i, weight in enumerate(weights):
+                if weight:
+                    for j, value in enumerate(basis):
+                        if value:
+                            out[j] += weight * value
+                if i + 1 < self.order:
+                    basis = self.step_vector(basis)
 
         if any(value < 0 for value in out):
             raise AssertionError("count recurrence produced negative count")
