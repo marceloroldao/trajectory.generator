@@ -203,6 +203,12 @@ jobs:
         run: |
           python experiments/gauge_covariant_vertical_event_gate.py
 
+      - name: Gate symbol-induced canonical fiber structure
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/symbolic_fiber_structure_gate.py
+
       - name: Gate cyclic fiber functor compatibility
         env:
           PYTHONPATH: .
