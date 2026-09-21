@@ -182,6 +182,12 @@ jobs:
         run: |
           python experiments/vertical_conjugacy_class_gate.py
 
+      - name: Gate cyclic fiber inversion naturality
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/cyclic_fiber_naturality_gate.py
+
       - name: Gate gauge-covariant information-event dynamics
         env:
           PYTHONPATH: .
