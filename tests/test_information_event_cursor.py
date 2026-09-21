@@ -8,6 +8,7 @@ from trajectory_generator.information_clock_trace import (
 )
 from trajectory_generator.information_event_cursor import (
     InformationEventBackwardCursor,
+    InformationEventDecoder,
     InformationEventRuntimePlan,
 )
 from trajectory_generator.scalar_partition_trajectory import (
@@ -142,6 +143,53 @@ class InformationEventCursorTests(unittest.TestCase):
             checked += 1
 
         self.assertGreater(checked, 0)
+
+
+    def test_reusable_decoder_matches_physical_decoder(self):
+        machine, _ = self.build()
+        decoder = InformationEventDecoder(
+            machine
+        )
+
+        for steps in range(2, 10):
+            total = (
+                machine.connection.machine.oracle.total_count(
+                    steps - machine.seed_bits
+                )
+            )
+            for final_state in range(total):
+                try:
+                    expected = machine.decode(
+                        final_state,
+                        steps,
+                    )
+                except ValueError:
+                    continue
+
+                trace, metrics = (
+                    decoder.decode_trace_with_metrics(
+                        final_state,
+                        steps,
+                    )
+                )
+                self.assertEqual(
+                    decoder.trace_codec.expand_bits(
+                        trace
+                    ),
+                    expected,
+                )
+                self.assertEqual(
+                    decoder.decode_bits(
+                        final_state,
+                        steps,
+                    ),
+                    expected,
+                )
+                if metrics is not None:
+                    self.assertEqual(
+                        metrics.macro_probe_physical_steps,
+                        0,
+                    )
 
 
 if __name__ == "__main__":
