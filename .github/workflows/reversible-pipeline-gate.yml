@@ -302,3 +302,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/cursor_vertical_connection_performance.py
+
+      - name: Gate wide-state cursor scaling
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/wide_state_cursor_gate.py
