@@ -44,6 +44,7 @@ jobs:
             tests.test_reversible_natural_extension \
             tests.test_intrinsic_vertical_dynamics \
             tests.test_vertical_gauge_symmetry \
+            tests.test_branch_reflection_vertical_dynamics \
             tests.test_gauge_invariant_vertical_law \
             tests.test_reversible_completion_groupoid
 
