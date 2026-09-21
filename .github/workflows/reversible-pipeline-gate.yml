@@ -44,7 +44,8 @@ jobs:
             tests.test_reversible_natural_extension \
             tests.test_intrinsic_vertical_dynamics \
             tests.test_vertical_gauge_symmetry \
-            tests.test_gauge_invariant_vertical_law
+            tests.test_gauge_invariant_vertical_law \
+            tests.test_reversible_completion_groupoid
 
       - name: Run automatic recurrent-core gate
         env:
@@ -159,3 +160,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/gauge_invariance_no_go_gate.py
+
+      - name: Gate reversible completion gauge groupoid
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/reversible_completion_groupoid_gate.py
