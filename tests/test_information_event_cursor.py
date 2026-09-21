@@ -89,6 +89,10 @@ class InformationEventCursorTests(unittest.TestCase):
                     cursor.metrics.equivalent_physical_steps,
                     steps - machine.seed_bits,
                 )
+                self.assertEqual(
+                    cursor.metrics.macro_probe_physical_steps,
+                    0,
+                )
 
 
 if __name__ == "__main__":
