@@ -228,6 +228,12 @@ jobs:
         run: |
           python experiments/stationary_reversible_cover_no_go_gate.py
 
+      - name: Gate native vertical product tradeoff
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/native_vertical_product_gate.py
+
       - name: Gate branch-created information budget
         env:
           PYTHONPATH: .
