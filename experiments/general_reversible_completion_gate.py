@@ -25,6 +25,12 @@ def graph_family():
     # Small deterministic enumeration of different merge/branch geometries.
     yield "merge", {
         0: (1, 2),
+        1: (0,),
+        2: (0,),
+    }, (0,)
+
+    yield "singleton_fibers", {
+        0: (1, 2),
         1: (2,),
         2: (1,),
     }, (0,)
@@ -60,6 +66,7 @@ def gate_graph(name, adjacency, starts, horizon=7):
     projection = True
     gauge_equivalent = True
     nonunique = False
+    nontrivial_fiber_exists = False
 
     gauges = (identity, reflection, alternating)
 
@@ -94,6 +101,9 @@ def gate_graph(name, adjacency, starts, horizon=7):
                     )
                     if blocks[-1][2] != expected:
                         partition = False
+
+            if count > 1:
+                nontrivial_fiber_exists = True
 
             for vertical in range(count):
                 state = LiftedState(node, vertical)
@@ -159,7 +169,11 @@ def gate_graph(name, adjacency, starts, horizon=7):
         and reversible
         and projection
         and gauge_equivalent
-        and nonunique
+        and (
+            nonunique
+            if nontrivial_fiber_exists
+            else not nonunique
+        )
     )
 
     print(
@@ -175,7 +189,14 @@ def gate_graph(name, adjacency, starts, horizon=7):
         "reversible", reversible,
         "projection", projection,
         "gauge_equivalent", gauge_equivalent,
+        "nontrivial_fiber_exists", nontrivial_fiber_exists,
         "vertical_law_nonunique", nonunique,
+        "gauge_expectation_matched",
+        (
+            nonunique
+            if nontrivial_fiber_exists
+            else not nonunique
+        ),
     )
     return passed
 
