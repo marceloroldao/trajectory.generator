@@ -90,6 +90,72 @@ class SeededVerticalConnectionTests(unittest.TestCase):
                     (state, steps),
                 )
 
+    def test_cursor_encode_matches_direct_encoder(self):
+        local, reference = self.build()
+
+        for steps in range(1, 10):
+            if steps < local.seed_bits:
+                states = range(1 << steps)
+            else:
+                states = range(
+                    reference.partition_machine.oracle.total_count(
+                        steps - reference.seed_bits
+                    )
+                )
+
+            for state in states:
+                try:
+                    bits = reference.decode(
+                        state,
+                        steps,
+                    )
+                except ValueError:
+                    continue
+
+                self.assertEqual(
+                    local.encode(bits),
+                    local.encode_direct(bits),
+                )
+                self.assertEqual(
+                    local.encode(bits),
+                    (state, steps),
+                )
+
+    def test_cursor_encode_does_not_use_scalar_oracle(self):
+        local, reference = self.build()
+        steps = 8
+        valid_state = None
+        bits = None
+
+        total = (
+            reference.partition_machine.oracle.total_count(
+                steps - reference.seed_bits
+            )
+        )
+        for state in range(total):
+            try:
+                bits = reference.decode(
+                    state,
+                    steps,
+                )
+                valid_state = state
+                break
+            except ValueError:
+                continue
+
+        self.assertIsNotNone(valid_state)
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError(
+                "optimized cursor encode requested scalar_at"
+            )
+
+        local.connection.machine.oracle.scalar_at = forbidden
+        self.assertEqual(
+            local.encode(bits),
+            (valid_state, steps),
+        )
+
     def test_cursor_decode_matches_direct_decoder(self):
         local, _ = self.build()
 
