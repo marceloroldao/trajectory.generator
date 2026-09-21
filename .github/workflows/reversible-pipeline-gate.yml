@@ -49,3 +49,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/floquet_count_field_gate.py
+
+      - name: Run affine translation address gate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/translation_address_gate.py
