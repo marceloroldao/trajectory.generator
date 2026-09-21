@@ -272,6 +272,46 @@ The representation is not information-theoretically optimal, but for fixed
 
 See `docs/algebraic_root_trajectory_2026-09-20.md`.
 
+### 17. Streaming colex trajectory
+
+`trajectory_generator/streaming_colex_trajectory.py` and
+`experiments/streaming_colex_trajectory_gate.py`
+
+This is an operational refinement of the hierarchical trajectory family, not a
+new admissible family. It keeps the exact count
+
+```text
+M(n,K) = 2 * sum(C(n-1,j), j=0..K)
+```
+
+but replaces batch combination rank/unrank with a step-by-step colex state.
+
+For an exact-`r` change set among `n` public positions, the newest position is
+present iff the within-bucket colex address lies in the public suffix:
+
+```text
+c >= C(n-1,r)
+```
+
+That gives a local reverse decision from current address, public step count, and
+`K`. No list of change positions is reconstructed.
+
+For `W=63, K=5`:
+
+```text
+frontier       = 14,082 steps
+valid states   = 9,222,784,404,533,559,556
+2^63           = 9,223,372,036,854,775,808
+occupancy      ~= 99.9936289%
+14,083 steps   = over capacity
+```
+
+So the construction preserves the exact information-theoretic frontier of the
+hierarchical family while making forward and reverse evolution operational one
+physical step at a time.
+
+See `docs/streaming_colex_trajectory_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -292,15 +332,28 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The current target remains a **stable endogenous computational universe** in which state, causal memory, law, transition, and recurrent structure remain reversible from public dynamics.
+The current target remains a **stable endogenous computational universe** in
+which state, causal memory, law, transition, and recurrent structure remain
+recoverable from public dynamics.
 
-The strongest operational result is now the algebraic root trajectory: sparse innovation positions can be regenerated from final state and public physical length with a local `O(K)` reverse law, without a trajectory table or reachable-manifold reconstruction.
+The strongest operational result is now the streaming colex trajectory. For the
+same constrained family already studied by the hierarchical codec, it reaches
+the exact enumerative capacity while supporting online forward updates and local
+reverse branch decisions. At `W=63, K=5`, the exact frontier remains 14,082
+steps with about 99.9936% occupancy of the 63-bit state space.
 
-The next gate is to reduce the constant `log2(K!)` redundancy of the polynomial coefficient state **without losing local root insertion/removal**. In parallel, this algebraic event layer should be connected back to the information-clock/endogenous-universe experiments so that deterministic flights are handled by the public dynamics while entropy-bearing branch events are carried by an exact reversible algebraic layer.
+The algebraic root trajectory remains a second reference construction: it is
+less dense but exposes branch events through a direct field equation. The next
+research gate is therefore not another raw capacity search. It is to connect
+these two properties: **colex-level state occupancy with algebraic/endogenous
+local geometry**, and then attach that reversible event layer to the
+information-clock universe where deterministic flights and entropy-bearing
+branch events are already separated.
 
 ## Quick start
 
 ```bash
+python experiments/streaming_colex_trajectory_gate.py
 python experiments/algebraic_root_trajectory_gate.py
 python experiments/information_clock_macrograph.py
 python experiments/recurrent_orbit_core.py
