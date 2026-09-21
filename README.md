@@ -384,6 +384,44 @@ historical whole-universe frontier numbers in the candidate names.
 
 See `docs/automatic_endogenous_recurrent_pipeline_2026-09-20.md`.
 
+### 20. Full-universe streaming graph address
+
+`trajectory_generator/public_graph_trajectory.py` and
+`experiments/full_universe_streaming_codec.py`
+
+The phase-lifted topological universe can now be addressed directly as one
+public finite-state graph. The codec starts from the eight public lifted states
+corresponding to the initial three-bit histories and evolves one graph edge per
+additional physical bit.
+
+For every node `v` and transition time `t`, public path counts define incoming
+rank blocks. Forward evolution inserts the predecessor address into the selected
+edge block; reverse evolution identifies the previous edge from the block
+containing the current address.
+
+The streaming counts are identical, step by step, to the historical batch
+universe counts and recover the same 63-bit frontiers:
+
+```text
+robust_208    -> 208 steps
+balanced_221  -> 221 steps
+long_239      -> 239 steps
+```
+
+Small-horizon exhaustive comparison also gives the same trajectory language as
+the historical batch unranker.
+
+This removes the need for a special transient-to-core address handoff. The
+recurrent-core and information-clock analyses remain valuable for exposing the
+geometry of where entropy enters, but the exact address can run over the entire
+public graph.
+
+Important distinction: the final integer is a constructed **enumerative address
+state derived from the universe laws**. This result does not claim that the raw
+causal node `(history, topology, phase)` alone contains the complete past.
+
+See `docs/full_universe_streaming_trajectory_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -404,32 +442,33 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The project now has four complementary operational references:
+The strongest operational result is now the **full-universe streaming graph
+address**. For the finite phase-lifted topological universe, one address state
+covers the initial prefix, transient evolution, recurrent entry, and recurrent
+orbit. Its exact path counts match the historical admissible-language counts and
+recover the original 63-bit frontiers `208 / 221 / 239`.
 
-1. **streaming colex:** exact enumerative capacity for the <=K-change family,
-   with local stepwise reverse;
-2. **algebraic root trajectory:** direct field-geometric branch detection with
-   constant `log2(K!)` asymptotic redundancy;
-3. **weighted information clock:** reversible addressing at entropy-bearing
-   macro-event boundaries;
-4. **automatic recurrent pipeline:** derives the recurrent core, branch states,
-   deterministic flights, macrograph, and a physical-step reversible address
-   directly from the endogenous universe graph.
+The recurrent-core and information-clock work remains important because it
+explains *why* the path count grows: most transitions are deterministic flights
+and entropy is introduced only at a small set of branch states. The full graph
+codec establishes correctness; the recurrent decomposition exposes structure.
 
-The strongest remaining boundary is now outside the recurrent core. The current
-physical codec assumes the trajectory begins at some recurrent-core node and
-encodes that node in the address. The next gate should extend the same reverse
-rank-block principle through the transient condensation DAG, so that the
-complete path
+The next engineering/research boundary is the public count field itself. The
+reference `WeightedPathCodec` caches `D(v,t)` for every reached time, costing
+`O(V*T)` public big integers. This is not trajectory metadata, but it is still a
+time-indexed table. The next gate should recover the required count rows from
+the finite universe law using a compact recurrence, checkpoint hierarchy, or
+matrix/characteristic-polynomial method, while preserving exact local reverse
+steps.
 
-`original universe state -> transient prefix -> recurrent core -> recurrent orbit`
-
-is represented by one final address and public physical length, without passing
-the core-entry state as side metadata.
+A deeper unresolved question also remains: whether a similarly reversible
+coordinate can emerge directly from the universe's causal state geometry,
+rather than being an explicitly constructed enumerative address.
 
 ## Quick start
 
 ```bash
+python experiments/full_universe_streaming_codec.py
 python experiments/automatic_endogenous_pipeline_gate.py
 python experiments/information_clock_streaming_codec.py
 python experiments/streaming_colex_trajectory_gate.py
