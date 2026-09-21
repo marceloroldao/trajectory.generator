@@ -470,6 +470,80 @@ These ratios compare count integers, not Python heap bytes.
 
 See `docs/floquet_count_field_recurrence_2026-09-20.md`.
 
+### 22. Affine translation address dynamics
+
+`trajectory_generator/translation_address_trajectory.py` and
+`experiments/translation_address_gate.py`
+
+The streaming address update has the exact affine form:
+
+```text
+S_(t+1) = S_t + Delta(edge,t)
+```
+
+`Delta` depends only on the public edge, public time, and public universe law;
+it is independent of the trajectory-specific rank. Reverse identifies the
+incoming edge and subtracts the same translation.
+
+For every reachable physical edge in all three topological candidates, the
+phase-aligned `Delta` sequence obeys the same Floquet recurrence as the public
+count field. GitHub Actions run `35552165365` passed rank-independence,
+translation-recurrence, and full-path identity gates through frontiers
+`208 / 221 / 239`.
+
+See `docs/translation_address_dynamics_2026-09-20.md`.
+
+### 23. Scalar partition reverse
+
+`trajectory_generator/scalar_floquet_partition.py` and
+`trajectory_generator/scalar_partition_trajectory.py`
+
+Reverse decoding no longer needs to materialize the full endpoint-count vector
+at the queried time. Endpoint boundaries, incoming-edge block sizes, and affine
+translations are evaluated directly as scalar linear functionals of the Floquet
+count field.
+
+The acceptance gate explicitly disables `field.vector_at()`. GitHub Actions
+run `35552323533` still passed exact frontier-path identity and exhaustive
+low-horizon address identity for all three topological candidates.
+
+See `docs/scalar_partition_reverse_2026-09-20.md`.
+
+### 24. Final-state-only reversible machine
+
+`trajectory_generator/seeded_graph_state_machine.py` and
+`experiments/final_state_only_gate.py`
+
+The operational decode interface is now:
+
+```text
+decode(final_state, number_of_steps)
+```
+
+with the universe law fixed publicly.
+
+No causal node, trajectory rank, branch history, core-entry state, trajectory
+table, time-indexed count table, or full count vector is supplied to decode.
+
+GitHub Actions run `35552480599` passed the end-to-end gate:
+
+```text
+robust_208    -> frontier 208
+balanced_221  -> frontier 221
+long_239      -> frontier 239
+```
+
+The frontier test starts from integer addresses selected directly from the final
+address space, decodes them, and requires re-encoding to reproduce the exact
+same integer.
+
+This achieves the project's operational `(final_state, steps) -> trajectory`
+target for these constrained admissible families. The final state is a
+constructed 63-bit enumerative trajectory coordinate; it is not the old raw
+causal node by itself.
+
+See `docs/final_state_only_reversible_machine_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -490,40 +564,40 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The strongest operational result is now the combination of:
+The **operational target is now satisfied for the tested constrained topological
+families**: a single integer final state plus the public trajectory length and
+fixed universe law regenerates the original admissible trajectory exactly.
 
-1. the **full-universe streaming graph address**, which exactly represents the
-   complete topological trajectory language from the public initial prefix
-   through transient and recurrent evolution;
-2. the **Floquet count-field recurrence**, which regenerates the public
-   endpoint-count field without a time-indexed `O(V*T)` table or a persistent
-   Krylov basis.
+The support path has also been reduced from a time-indexed vector table to a
+small public recurrence and scalar partition boundaries:
 
-The decoder now has a fully fixed-memory public support mechanism: short
-recurrence coefficients plus a short reverse Floquet window. The count field
-walks backward with the trajectory and the historical 63-bit frontiers
-`208 / 221 / 239` are unchanged.
+```text
+public universe
+ -> Floquet recurrence
+ -> scalar partition boundaries
+ -> affine translations
+ -> one integer trajectory state
+```
 
-This resolves the previous engineering boundary around the public count table.
-The main unresolved conceptual boundary is now sharper:
+Forward evolution is `S' = S + Delta(edge,t)`; reverse identifies the public
+predecessor block and applies `S = S' - Delta(edge,t)`.
 
-> the final integer is still an explicitly constructed enumerative address
-> coordinate; the raw causal node `(history, topology, phase)` does not yet
-> uniquely expose the previous branch.
+The main unresolved question is now the stronger **native-state hypothesis**.
+The 63-bit integer is an explicitly constructed enumerative trajectory
+coordinate. The old causal node `(history, topology, phase)` is only a
+projection of it and cannot by itself distinguish all frontier histories.
 
-The next research gate should therefore focus on **causal-state-native reverse
-coordinates**: search for endogenous observables or universe laws whose current
-causal geometry partitions predecessor branches directly, so that the
-enumerative address can shrink into — or become identical to — the causal
-state itself.
-
-A secondary engineering path is to derive an even smaller modal count
-coordinate that avoids reconstructing a full endpoint-count row during each
-reverse step.
+The next gate should quantify that information gap exactly — per endpoint,
+average and worst-case — and use it to determine the minimum native causal-state
+dimension required before searching for a universe in which the reversible
+coordinate is intrinsic rather than attached.
 
 ## Quick start
 
 ```bash
+python experiments/translation_address_gate.py
+python experiments/scalar_partition_gate.py
+python experiments/final_state_only_gate.py
 python experiments/floquet_count_field_gate.py
 python experiments/count_field_recurrence_gate.py
 python experiments/full_universe_streaming_codec.py
