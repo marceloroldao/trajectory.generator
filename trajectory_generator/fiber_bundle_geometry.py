@@ -8,7 +8,9 @@ where |F_t(v)| = D(v,t), the number of admissible histories ending at causal
 state v.
 
 This is generally not a Cartesian product H x V because the fiber cardinality
-depends on the horizontal base state.
+depends on the horizontal base state. In strict topology this is therefore not
+a classical bundle with one fixed typical fiber; it is a variable-cardinality
+fibered state space (an indexed family of discrete fibers).
 
 A uniform rectangular representation pads every populated fiber to
 
