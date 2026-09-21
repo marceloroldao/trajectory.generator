@@ -97,6 +97,50 @@ class ComposedVerticalConnectionTests(unittest.TestCase):
                         source,
                     )
 
+    def test_compiled_block_matches_sequential_embedding(self):
+        machine, _, composed = self.build()
+
+        for start_time in range(12):
+            vector = machine.field.vector_at(
+                start_time
+            )
+
+            for node in machine.nodes:
+                outgoing = machine.codec.outgoing[node]
+                if not outgoing:
+                    continue
+
+                first = outgoing[0]
+                second_edges = machine.codec.outgoing[
+                    first.target
+                ]
+                if not second_edges:
+                    continue
+
+                labels = (
+                    first.label,
+                    second_edges[0].label,
+                )
+                direct = composed.embedding(
+                    labels,
+                    start_time,
+                )
+                plan = composed.compile_path(
+                    labels
+                )
+                compiled = (
+                    composed.embedding_from_source_vector(
+                        plan,
+                        start_time=start_time,
+                        source_vector=vector,
+                        target_size=direct.target_size,
+                    )
+                )
+                self.assertEqual(
+                    compiled,
+                    direct,
+                )
+
     def test_composed_block_width_equals_source_fiber(self):
         machine, exact, composed = self.build()
         source = exact.state(
