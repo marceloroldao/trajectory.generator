@@ -266,3 +266,42 @@ derived from a more general principle, such as:
 
 That would move the result from a compact engineered law toward a law forced by
 the reversible completion problem itself.
+
+## Correction after the general reversible-completion gate
+
+Later experiments generalized the lift beyond the three topological candidates and established an important limitation on the word **canonical**.
+
+Minimal reversibility forces:
+
+- fiber cardinalities;
+- predecessor-edge image cardinalities;
+- disjoint predecessor partitions;
+- bijective recoverability of histories.
+
+It does **not** force one unique numerical permutation inside each edge image whenever a fiber has more than one state.
+
+Identity, reflection, phase reflection, and the phase/merge law can all be exact gauges of the same coordinate-free history dynamics.
+
+The natural-extension gate verifies the conjugacy relation between such gauges.
+
+Therefore `CANONICAL_PHASE_MERGE_SPEC` should now be read as:
+
+```text
+a canonical gauge under the restricted ordered-graph grammar
+```
+
+not as a unique consequence of reversible completion.
+
+The newer preferred intrinsic gauge removes the predecessor-index rotation from the internal dynamics:
+
+```text
+sigma(t) = (-1)^(t mod P)
+b        = 0
+```
+
+and leaves incoming-edge ordering only in the integer serialization of predecessor blocks.
+
+See:
+
+- `docs/general_minimal_reversible_completion_2026-09-20.md`
+- `docs/intrinsic_phase_reflection_2026-09-20.md`
