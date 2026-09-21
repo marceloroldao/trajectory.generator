@@ -275,3 +275,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/normalized_vertical_dynamics_gate.py
+
+      - name: Gate exact local horizontal vertical connection
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/exact_vertical_connection_gate.py
