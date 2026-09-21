@@ -36,7 +36,7 @@ def main():
             period=3,
             base_phase=0,
             width=63,
-            seed_cache_entries=32,
+            seed_cache_entries=512,
         )
         reference = build_floquet_path_codec(
             adjacency,
