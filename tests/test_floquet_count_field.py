@@ -48,6 +48,8 @@ class FloquetCountFieldTests(unittest.TestCase):
             )
 
         self.assertTrue(floquet.validate_recurrence(20))
+        self.assertEqual(floquet.basis_integer_count, 0)
+        self.assertGreater(floquet.derived_basis_integer_count, 0)
         self.assertLessEqual(
             floquet.phase_state_count,
             floquet.reachable_state_count,
