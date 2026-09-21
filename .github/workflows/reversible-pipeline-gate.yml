@@ -148,6 +148,12 @@ jobs:
         run: |
           python experiments/vertical_gauge_automorphism_gate.py
 
+      - name: Gate information-event vertical reflection
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/branch_reflection_vertical_gate.py
+
       - name: Gate gauge-invariant vertical no-go theorem
         env:
           PYTHONPATH: .
