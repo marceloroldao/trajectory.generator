@@ -308,3 +308,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/wide_state_cursor_gate.py
+
+      - name: Gate state-width entropy scaling
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/state_width_entropy_scaling_gate.py
