@@ -141,6 +141,8 @@ def main():
         maximum_stored_integers = 0
 
         event_start = perf_counter()
+        event_trace_seconds = 0.0
+        event_expand_seconds = 0.0
         event_bits = []
 
         for final_state in samples:
@@ -149,11 +151,20 @@ def main():
                 final_state,
                 transition_steps,
             )
+            trace_start = perf_counter()
             trace = cursor.decode_trace(
                 seed_bits=machine.seed_bits,
                 start_node_to_seed=machine.start_node_to_seed,
             )
+            event_trace_seconds += (
+                perf_counter() - trace_start
+            )
+
+            expand_start = perf_counter()
             bits = trace_codec.expand_bits(trace)
+            event_expand_seconds += (
+                perf_counter() - expand_start
+            )
             metrics = cursor.metrics
 
             if (
@@ -202,6 +213,11 @@ def main():
             if event_seconds > 0.0
             else float("inf")
         )
+        trace_only_ratio = (
+            physical_seconds / event_trace_seconds
+            if event_trace_seconds > 0.0
+            else float("inf")
+        )
 
         hard_pass = (
             exact
@@ -240,9 +256,15 @@ def main():
             maximum_stored_integers,
             "scalar_at_calls", scalar_calls,
             "event_seconds", f"{event_seconds:.6f}",
+            "event_trace_seconds",
+            f"{event_trace_seconds:.6f}",
+            "event_expand_seconds",
+            f"{event_expand_seconds:.6f}",
             "physical_seconds", f"{physical_seconds:.6f}",
             "physical_over_event_timing_ratio",
             f"{timing_ratio:.6f}",
+            "physical_over_trace_only_timing_ratio",
+            f"{trace_only_ratio:.6f}",
             "timing_is_gate", False,
             "interpretation",
             "exact direct macro-block runtime with zero physical probing; timing remains diagnostic",
