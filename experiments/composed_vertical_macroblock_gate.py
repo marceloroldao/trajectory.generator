@@ -26,7 +26,7 @@ CANDIDATES = {
     "long": (3, 2, 4, 4),
 }
 
-START_TIMES = (24, 48, 96, 192)
+BASE_START_TIMES = (24, 48, 96, 192)
 
 
 def build(params):
@@ -81,8 +81,27 @@ def main():
             for node in machine.connection.codec.nodes
         }
 
-        for start_time in START_TIMES:
-            for macro in trace.structure.macro_edges:
+        for macro in trace.structure.macro_edges:
+            source_phase = (
+                macro.source[2]
+                if (
+                    isinstance(macro.source, tuple)
+                    and len(macro.source) >= 3
+                    and isinstance(macro.source[2], int)
+                )
+                else 0
+            )
+            start_times = tuple(
+                base
+                + (
+                    source_phase
+                    - base
+                )
+                % 3
+                for base in BASE_START_TIMES
+            )
+
+            for start_time in start_times:
                 labels = trace.macro_edge_labels[
                     macro.label
                 ]
@@ -181,7 +200,7 @@ def main():
             "COMPOSED_VERTICAL_MACROBLOCK_GATE",
             "name", name,
             "PASS", passed,
-            "start_times", START_TIMES,
+            "base_start_times", BASE_START_TIMES,
             "macro_edges",
             len(trace.structure.macro_edges),
             "checked_blocks", checked_blocks,
