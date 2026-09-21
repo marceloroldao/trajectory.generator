@@ -82,12 +82,81 @@ class InformationEventCursorMetrics:
         )
 
 
+class InformationEventRuntimePlan:
+    """Static public macro geometry shared by every final-state cursor."""
+
+    def __init__(
+        self,
+        trace_codec: InformationClockTraceCodec,
+    ) -> None:
+        self.trace_codec = trace_codec
+        self.connection = trace_codec.connection
+        self.composed = ComposedVerticalConnection(
+            self.connection
+        )
+
+        structure = trace_codec.structure
+        reverse_priority = {}
+
+        if (
+            structure.branch_nodes
+            and structure.macro_edges
+            and structure.growth_rate > 0.0
+        ):
+            clock = information_clock_statistics(
+                structure.branch_nodes,
+                structure.macro_edges,
+                growth_rate=structure.growth_rate,
+            )
+            reverse = reverse_parry_geometry(
+                structure.branch_nodes,
+                clock,
+            )
+            reverse_priority = {
+                row.label: row.probability
+                for row in reverse.reverse_probabilities
+            }
+
+        candidates = {}
+        for macro in structure.macro_edges:
+            labels = trace_codec.macro_edge_labels[
+                macro.label
+            ]
+            plan = self.composed.compile_path(
+                labels
+            )
+            candidates.setdefault(
+                macro.target,
+                [],
+            ).append((
+                macro.label,
+                plan,
+                reverse_priority.get(
+                    macro.label,
+                    0.0,
+                ),
+            ))
+
+        for target in candidates:
+            candidates[target].sort(
+                key=lambda row: row[2],
+                reverse=True,
+            )
+
+        self.macro_candidates = {
+            target: tuple(rows)
+            for target, rows in candidates.items()
+        }
+
+
 class InformationEventBackwardCursor:
     def __init__(
         self,
         trace_codec: InformationClockTraceCodec,
         final_state: int,
         transition_steps: int,
+        *,
+        runtime_plan: InformationEventRuntimePlan | None = None,
     ) -> None:
         if transition_steps < 0:
             raise ValueError(
@@ -117,56 +186,20 @@ class InformationEventBackwardCursor:
             self.count_cursor.stored_row_count
         )
 
-        self.composed = ComposedVerticalConnection(
-            self.connection
+        if runtime_plan is None:
+            runtime_plan = InformationEventRuntimePlan(
+                trace_codec
+            )
+        elif runtime_plan.trace_codec is not trace_codec:
+            raise ValueError(
+                "runtime_plan belongs to a different trace codec"
+            )
+
+        self.runtime_plan = runtime_plan
+        self.composed = runtime_plan.composed
+        self.macro_candidates = (
+            runtime_plan.macro_candidates
         )
-
-        reverse_priority = {}
-        structure = trace_codec.structure
-        if (
-            structure.branch_nodes
-            and structure.macro_edges
-            and structure.growth_rate > 0.0
-        ):
-            clock = information_clock_statistics(
-                structure.branch_nodes,
-                structure.macro_edges,
-                growth_rate=structure.growth_rate,
-            )
-            reverse = reverse_parry_geometry(
-                structure.branch_nodes,
-                clock,
-            )
-            reverse_priority = {
-                row.label: row.probability
-                for row in reverse.reverse_probabilities
-            }
-
-        self.macro_candidates = {}
-        for macro in structure.macro_edges:
-            labels = trace_codec.macro_edge_labels[
-                macro.label
-            ]
-            plan = self.composed.compile_path(
-                labels
-            )
-            self.macro_candidates.setdefault(
-                macro.target,
-                [],
-            ).append((
-                macro.label,
-                plan,
-                reverse_priority.get(
-                    macro.label,
-                    0.0,
-                ),
-            ))
-
-        for target in self.macro_candidates:
-            self.macro_candidates[target].sort(
-                key=lambda row: row[2],
-                reverse=True,
-            )
 
     @property
     def metrics(self) -> InformationEventCursorMetrics:
