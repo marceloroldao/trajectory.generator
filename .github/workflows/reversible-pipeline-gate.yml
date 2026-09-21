@@ -42,7 +42,8 @@ jobs:
             tests.test_canonical_vertical_state_machine \
             tests.test_minimal_reversible_completion \
             tests.test_reversible_natural_extension \
-            tests.test_intrinsic_vertical_dynamics
+            tests.test_intrinsic_vertical_dynamics \
+            tests.test_vertical_gauge_symmetry
 
       - name: Run automatic recurrent-core gate
         env:
@@ -139,3 +140,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/phase_reflection_final_state_gate.py
+
+      - name: Gate vertical gauge automorphism symmetry
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/vertical_gauge_automorphism_gate.py
