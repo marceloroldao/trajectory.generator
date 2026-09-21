@@ -74,6 +74,14 @@ class FloquetBackwardCountCursor:
             period_index
         )
 
+    def clone(self) -> "FloquetBackwardCountCursor":
+        clone = object.__new__(FloquetBackwardCountCursor)
+        clone.field = self.field
+        clone.time = self.time
+        clone.phase_offset = self.phase_offset
+        clone.period_cursor = self.period_cursor.clone()
+        return clone
+
     @property
     def stored_row_count(self) -> int:
         return self.period_cursor.stored_row_count
