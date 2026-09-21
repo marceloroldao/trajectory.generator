@@ -38,7 +38,10 @@ class CompiledComposedPath:
     target: object
     physical_steps: int
     source_index: int
+    source_phase_offset: int
     offset_weights: tuple[int, ...]
+    base_offset_weights: tuple[int, ...]
+    base_source_weights: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -101,6 +104,42 @@ class ComposedVerticalConnection:
             previous_target = edge.target
         return labels, tuple(edges)
 
+    def _project_functional_to_base(
+        self,
+        weights: Sequence[int],
+        phase_offset: int,
+    ) -> tuple[int, ...]:
+        if len(weights) != self.field.reachable_state_count:
+            raise ValueError(
+                "functional has wrong reachable-state dimension"
+            )
+        if not 0 <= phase_offset < self.field.period:
+            raise ValueError("phase_offset outside period")
+
+        projected = []
+        for full_index in self.field.base_full_indices:
+            vector = [0] * self.field.reachable_state_count
+            vector[full_index] = 1
+            vector = tuple(vector)
+
+            for _ in range(phase_offset):
+                vector = self.field.step_vector(
+                    vector
+                )
+
+            projected.append(
+                sum(
+                    weight * value
+                    for weight, value in zip(
+                        weights,
+                        vector,
+                    )
+                    if weight and value
+                )
+            )
+
+        return tuple(projected)
+
     def compile_path(
         self,
         edge_labels: Sequence[str],
@@ -145,13 +184,95 @@ class ComposedVerticalConnection:
 
         source = edges[0].source
         target = edges[-1].target
+        source_index = self.field.node_index[source]
+        source_phase_offset = (
+            self.field.phase_of(source)
+            - self.field.base_phase
+        ) % self.field.period
+
+        source_weights = [0] * dimension
+        source_weights[source_index] = 1
+
         return CompiledComposedPath(
             edge_labels=labels,
             source=source,
             target=target,
             physical_steps=len(edges),
-            source_index=self.field.node_index[source],
+            source_index=source_index,
+            source_phase_offset=source_phase_offset,
             offset_weights=tuple(weights),
+            base_offset_weights=(
+                self._project_functional_to_base(
+                    weights,
+                    source_phase_offset,
+                )
+            ),
+            base_source_weights=(
+                self._project_functional_to_base(
+                    source_weights,
+                    source_phase_offset,
+                )
+            ),
+        )
+
+    def embedding_from_period_base_vector(
+        self,
+        plan: CompiledComposedPath,
+        *,
+        start_time: int,
+        base_vector: Sequence[int],
+        target_size: int,
+    ) -> ComposedVerticalEmbedding:
+        """Evaluate a compiled block directly on the compact Floquet base slice."""
+        if start_time < 0:
+            raise ValueError("start_time must be >= 0")
+        if len(base_vector) != self.field.phase_state_count:
+            raise ValueError(
+                "base_vector has wrong Floquet phase-state dimension"
+            )
+        phase_offset = start_time % self.field.period
+        expected = (
+            plan.source_phase_offset
+            + self.field.base_phase
+        ) % self.field.period
+        if phase_offset != expected:
+            raise ValueError(
+                "macro source time is incompatible with source phase"
+            )
+
+        source_size = sum(
+            weight * value
+            for weight, value in zip(
+                plan.base_source_weights,
+                base_vector,
+            )
+            if weight and value
+        )
+        start = sum(
+            weight * value
+            for weight, value in zip(
+                plan.base_offset_weights,
+                base_vector,
+            )
+            if weight and value
+        )
+        end = start + source_size
+
+        if not 0 <= start <= end <= target_size:
+            raise AssertionError(
+                "Floquet-compiled subfiber lies outside target fiber"
+            )
+
+        return ComposedVerticalEmbedding(
+            start_time=start_time,
+            edge_labels=plan.edge_labels,
+            source=plan.source,
+            target=plan.target,
+            physical_steps=plan.physical_steps,
+            source_size=source_size,
+            target_size=target_size,
+            start=start,
+            end=end,
         )
 
     def embedding_from_source_vector(
