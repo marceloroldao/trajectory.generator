@@ -145,6 +145,69 @@ def component_growth_rate(
     )
 
 
+def component_spectral_radius(
+    adjacency: Mapping[Node, Sequence[Node]],
+    component: Sequence[Node] | set[Node],
+    *,
+    iterations: int = 10000,
+    tolerance: float = 1e-14,
+) -> float:
+    """Compute the Perron spectral radius of an irreducible component.
+
+    A direct power iteration on an irreducible periodic graph can oscillate.
+    We instead iterate on A + I. Adding the identity preserves Perron
+    eigenvectors, shifts the Perron eigenvalue from lambda to lambda + 1,
+    and makes every irreducible component primitive.
+
+    Collatz-Wielandt lower/upper ratio bounds provide the convergence
+    certificate, avoiding the O(1/t) bias of the historical nth-root
+    path-count growth estimator.
+    """
+    if iterations < 1:
+        raise ValueError("iterations must be >= 1")
+    if tolerance <= 0.0:
+        raise ValueError("tolerance must be positive")
+
+    edges = normalize_graph(adjacency)
+    comp = tuple(sorted(set(component), key=_stable_key))
+    if not comp:
+        return 0.0
+
+    comp_set = set(comp)
+    index = {node: i for i, node in enumerate(comp)}
+    size = len(comp)
+    x = [1.0] * size
+    lower = 0.0
+    upper = 0.0
+
+    for _ in range(iterations):
+        # y = (A^T + I) x. A and A^T have the same spectrum.
+        y = list(x)
+        for source, value in zip(comp, x):
+            if value == 0.0:
+                continue
+            for target in edges[source]:
+                if target in comp_set:
+                    y[index[target]] += value
+
+        ratios = [
+            y[i] / x[i]
+            for i in range(size)
+            if x[i] > 0.0
+        ]
+        lower = min(ratios)
+        upper = max(ratios)
+
+        scale = max(y)
+        if scale == 0.0:
+            return 0.0
+        x = [value / scale for value in y]
+
+        if upper - lower <= tolerance * max(1.0, upper):
+            return max(0.0, 0.5 * (lower + upper) - 1.0)
+
+    return max(0.0, 0.5 * (lower + upper) - 1.0)
+
 def dominant_recurrent_component(
     adjacency: Mapping[Node, Sequence[Node]],
 ) -> set[Node]:
@@ -160,7 +223,7 @@ def dominant_recurrent_component(
 
     scored = [
         (
-            component_growth_rate(edges, component),
+            component_spectral_radius(edges, component),
             len(component),
             tuple(sorted((_stable_key(node) for node in component))),
             component,
@@ -312,7 +375,7 @@ def derive_recurrent_structure(
         branch_nodes=branch_nodes,
         macro_edges=macro_edges,
         physical_edges=physical_edges,
-        growth_rate=component_growth_rate(edges, component),
+        growth_rate=component_spectral_radius(edges, component),
     )
 
 
