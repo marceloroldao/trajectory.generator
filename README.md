@@ -922,6 +922,80 @@ whereas the variable-fiber scalar chart still fits in 63 bits.
 
 See `docs/horizontal_vertical_information_geometry_2026-09-21.md`.
 
+### 34. Cursor runtime and state-width entropy scaling
+
+`trajectory_generator/vertical_connection_cursor.py`,
+`trajectory_generator/seeded_vertical_connection.py`,
+`experiments/cursor_vertical_connection_performance.py`,
+`experiments/wide_state_cursor_gate.py`, and
+`experiments/state_width_entropy_scaling_gate.py`
+
+The local horizontal/vertical machine now uses fixed-memory count cursors in
+both directions.
+
+Optimized decode uses a backward Floquet recurrence window. Optimized encode
+uses one current public count vector and advances it by `A^T D_t`.
+
+The scalar partition oracle remains a reference/derivation path, but the
+optimized trajectory walk performs:
+
+```text
+cursor decode scalar_at calls = 0
+cursor encode scalar_at calls = 0
+```
+
+GitHub Actions run `35564235039` passed **46 scientific gates**.
+
+CI timing is informational rather than a gate. In that run, observed decode
+speedups versus the direct scalar local implementation were about
+`14.5x / 20.7x / 21.9x` for robust/balanced/long. Encode speedups were about
+`34.7x / 34.4x / 33.5x`.
+
+Exact final-state frontiers now include:
+
+```text
+width        robust       balanced       long
+  63           208           221          239
+ 128           434           461          515
+ 256           879           934        1,064
+ 512         1,768         1,881        2,166
+```
+
+The number of retained count-integer slots is independent of the physical
+horizon for each fixed universe:
+
+```text
+candidate      reverse slots       forward persistent slots
+robust              144                       46
+balanced             91                       37
+long                 60                       34
+```
+
+These are integer-slot counts, not constant Python heap bytes. Big-integer byte
+size grows as the addressed family grows.
+
+The wide-state results also verify the asymptotic capacity law
+
+```text
+frontier(W) / W
+    -> 1 / log2(lambda).
+```
+
+Using the 256->512 bit frontier increment, the measured steps-per-added-bit
+slope differs from `1/log2(lambda)` by only about:
+
+```text
+robust      0.071%
+balanced    0.048%
+long        0.384%
+```
+
+So the amount of exact trajectory length purchased by one extra final-state bit
+is quantitatively controlled by the inverse topological entropy rate of the
+public universe.
+
+See `docs/cursor_runtime_width_scaling_2026-09-21.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -1014,6 +1088,9 @@ the admissible family.
 ## Quick start
 
 ```bash
+python experiments/state_width_entropy_scaling_gate.py
+python experiments/wide_state_cursor_gate.py
+python experiments/cursor_vertical_connection_performance.py
 python experiments/seeded_vertical_connection_gate.py
 python experiments/exact_vertical_connection_gate.py
 python experiments/normalized_vertical_dynamics_gate.py
