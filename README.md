@@ -609,6 +609,57 @@ modes or branch geometry instead of arbitrary mixing coefficients.
 
 See `docs/endogenous_periodic_vertical_dynamics_2026-09-20.md`.
 
+### 27. Canonical coefficient-free vertical law
+
+`trajectory_generator/canonical_vertical_law.py`,
+`trajectory_generator/canonical_vertical_state_machine.py`,
+`experiments/canonical_vertical_law_search.py`, and
+`experiments/canonical_vertical_final_state_gate.py`
+
+The vertical law no longer uses hand-chosen numerical mixing constants.
+
+A restricted grammar permits only:
+
+- temporal orientation from public phase/cycle;
+- structural rotation from canonical causal edge/node ordinals;
+- unit coefficients;
+- periods `P`, `2P`, or `4P`.
+
+The first minimum-description law already passes all three historical
+topological universes:
+
+```text
+sigma(t) = (-1)^(t mod P)
+b(e)     = incoming_index(e)
+P        = 3
+```
+
+so:
+
+```text
+local' = (sigma*y + b) mod source_fiber_size
+```
+
+before embedding into the incoming-edge sub-fiber of the target node.
+
+GitHub Actions run `35553843921` passed exact periodicity, reversibility,
+causal projection, frontier partitioning, and full frontier roundtrip.
+
+The same run then validated the **dynamic vertical final-state machine**:
+`decode(final_state, steps)` still recovers the admissible bit trajectory and
+re-encoding returns the exact same final integer at frontiers `208 / 221 / 239`.
+
+For every frontier candidate, all five sampled final integers mapped to a
+different trajectory than the old static rank codec. Thus the vertical
+coordinate is operationally dynamic, not passive rank transport.
+
+The frozen law also has a structural derivation:
+
+1. minimum-period non-constant orientation -> public `phase`;
+2. target-fiber predecessor partition coordinate -> `incoming_index`.
+
+See `docs/canonical_vertical_law_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -629,43 +680,52 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The operational `(final_state, steps) -> trajectory` target remains satisfied
-for the tested constrained topological families.
-
-The stronger native-state program has now advanced from an enumerative
-interpretation to an explicit **horizontal/vertical reversible universe**:
+The operational target remains satisfied:
 
 ```text
-horizontal:
-    original public causal node
-
-vertical:
-    minimal history-distinguishing fiber coordinate
-    with its own periodic reversible dynamics
+(final_state, steps, public universe law)
+    -> exact admissible trajectory
 ```
 
-The lifted dynamics projects exactly onto the original causal graph, while the
-vertical coordinate evolves through a nontrivial period-6 endogenous
-orientation/rotation law.
+The stronger native-state program has now reached a simpler form than the
+earlier period-6 mixer.
 
-This closes two earlier gaps:
+The reversible universe is represented as:
 
-1. the amount of information missing from the raw causal node has been measured;
-2. the required additional coordinate now has a genuine reversible dynamics
-   instead of passive rank transport.
+```text
+horizontal = original public causal node
+vertical   = minimal history-distinguishing causal coordinate
+```
 
-The main unresolved question is **law naturality**.  The current vertical drive
-is public and endogenous once fixed, but its numerical mixing constants were
-chosen by design.
+and the vertical coordinate has its own coefficient-free periodic dynamics:
 
-The next gate should derive or search the vertical law from structures already
-present in the universe — Floquet modes, predecessor multiplicities,
-information-clock phase, or other causal invariants — and compare the smallest
-exact law families at periods `P`, `2P`, `4P`, and recurrent-event periods.
+```text
+sigma(t) = (-1)^(t mod P)
+b(e)     = incoming_index(e)
+P        = 3
+```
+
+This law is enough to preserve exact reversibility and exact projection through
+the historical frontiers `208 / 221 / 239`. It also changes the mapping
+between final integers and trajectories relative to the old static rank codec,
+while preserving final-state-only recovery.
+
+The main unresolved question has therefore narrowed again. It is no longer
+whether the vertical coordinate can have a native reversible dynamics; it can.
+It is whether the phase/merge law can be shown to follow from a **general
+minimal reversible-completion principle**, rather than from two explicit design
+axioms.
+
+The next research direction should formalize that principle: characterize the
+minimal reversible extension of a finite many-to-one causal graph, and determine
+whether phase orientation plus predecessor-partition rotation appears as a
+canonical or unique completion under natural symmetry/locality constraints.
 
 ## Quick start
 
 ```bash
+python experiments/canonical_vertical_law_search.py
+python experiments/canonical_vertical_final_state_gate.py
 python experiments/causal_state_information_gap.py
 python experiments/reversible_fiber_lift_gate.py
 python experiments/minimal_reversible_causal_lift_gate.py
