@@ -263,3 +263,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/information_clock_vertical_rate_gate.py
+
+      - name: Gate horizontal vertical fiber-bundle geometry
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/fiber_bundle_geometry_gate.py
