@@ -15,19 +15,19 @@ The macro-block calculation includes all reachable predecessors in the public
 universe, so recurrent-core merges and transient in-edges do not invalidate the
 jump.
 
-The public count cursor is reinitialized at a macro destination time from the
-fixed-memory Floquet recurrence.  This is exact and horizon-independent in
-stored row count, though it is not assumed to be faster than incremental
-physical stepping on every graph. Timing is benchmarked separately.
+Macro candidates are tested on clones of the compact current Floquet cursor.
+A successful clone is promoted to the live cursor; failed candidates are
+discarded. No count-field restart or trajectory-time table is required.
+
+The logical API can therefore consume several physical transitions in one
+reverse_event() while preserving bounded recurrence state. Candidate probing
+still performs exact recurrence steps internally and is benchmarked separately.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .composed_vertical_connection import (
-    ComposedVerticalConnection,
-)
 from .exact_vertical_connection import (
     LocalFiberState,
 )
@@ -50,6 +50,7 @@ class InformationEventCursorMetrics:
     fallback_physical_steps: int
     equivalent_physical_steps: int
     count_cursor_restarts: int
+    macro_probe_physical_steps: int
     maximum_stored_floquet_rows: int
     phase_state_count: int
 
@@ -86,10 +87,6 @@ class InformationEventBackwardCursor:
         self.machine = trace_codec.machine
         self.connection = trace_codec.connection
         self.field = self.connection.machine.field
-        self.composed = ComposedVerticalConnection(
-            self.connection
-        )
-
         initial = VerticalConnectionBackwardCursor(
             self.connection,
             final_state,
@@ -103,6 +100,7 @@ class InformationEventBackwardCursor:
         self._macro_physical_steps = 0
         self._fallback_physical_steps = 0
         self._count_cursor_restarts = 0
+        self._macro_probe_physical_steps = 0
         self._maximum_stored_rows = (
             self.count_cursor.stored_row_count
         )
@@ -141,6 +139,9 @@ class InformationEventBackwardCursor:
             count_cursor_restarts=(
                 self._count_cursor_restarts
             ),
+            macro_probe_physical_steps=(
+                self._macro_probe_physical_steps
+            ),
             maximum_stored_floquet_rows=(
                 self._maximum_stored_rows
             ),
@@ -149,17 +150,94 @@ class InformationEventBackwardCursor:
             ),
         )
 
-    def _restart_count_cursor(
+    def _try_known_path(
         self,
-        time: int,
-    ) -> None:
-        self.count_cursor = (
-            self.field.backward_cursor(time)
-        )
-        self._count_cursor_restarts += 1
-        self._maximum_stored_rows = max(
-            self._maximum_stored_rows,
-            self.count_cursor.stored_row_count,
+        edge_labels,
+    ):
+        labels = tuple(edge_labels)
+        if not labels or len(labels) > self.state.time:
+            return None
+
+        cursor = self.count_cursor.clone()
+        node = self.state.node
+        rank = self.state.rank
+        fiber_size = self.state.fiber_size
+        time = self.state.time
+        probe_steps = 0
+
+        for label in reversed(labels):
+            edge = self.connection.codec.edge_by_label[
+                label
+            ]
+            if edge.target != node:
+                return None
+            if cursor.time != time:
+                raise AssertionError(
+                    "candidate cursor and local time diverged"
+                )
+
+            incoming = self.connection.codec.incoming[
+                node
+            ]
+
+            if len(incoming) == 1:
+                if incoming[0] != edge:
+                    return None
+                cursor.step_back()
+                previous_rank = rank
+                previous_size = fiber_size
+            else:
+                previous_vector = (
+                    cursor.previous_vector()
+                )
+                offset = 0
+                found = False
+                block = None
+
+                for candidate in incoming:
+                    size = previous_vector[
+                        self.field.node_index[
+                            candidate.source
+                        ]
+                    ]
+                    if candidate == edge:
+                        found = True
+                        block = size
+                        break
+                    offset += size
+
+                if (
+                    not found
+                    or block is None
+                    or block <= 0
+                    or not (
+                        offset <= rank < offset + block
+                    )
+                ):
+                    self._macro_probe_physical_steps += (
+                        probe_steps + 1
+                    )
+                    return None
+
+                previous_rank = rank - offset
+                previous_size = block
+                cursor.step_back()
+
+            probe_steps += 1
+            time -= 1
+            node = edge.source
+            rank = previous_rank
+            fiber_size = previous_size
+
+        self._macro_probe_physical_steps += probe_steps
+        return (
+            LocalFiberState(
+                time=time,
+                node=node,
+                rank=rank,
+                fiber_size=fiber_size,
+            ),
+            cursor,
         )
 
     def _try_macro_jump(self):
@@ -170,37 +248,34 @@ class InformationEventBackwardCursor:
         if not candidates:
             return None
 
-        block = self.composed.locate_predecessor(
-            self.state,
-            candidates,
-        )
-        if block is None:
-            return None
+        for labels in candidates:
+            result = self._try_known_path(labels)
+            if result is None:
+                continue
 
-        label = self.macro_label_by_path[
-            block.edge_labels
-        ]
-        new_state = LocalFiberState(
-            time=block.start_time,
-            node=block.source,
-            rank=self.state.rank - block.start,
-            fiber_size=block.source_size,
-        )
+            new_state, new_cursor = result
+            label = self.macro_label_by_path[
+                tuple(labels)
+            ]
 
-        self.state = new_state
-        self._restart_count_cursor(
-            new_state.time
-        )
-        self._logical_operations += 1
-        self._macro_jumps += 1
-        self._macro_physical_steps += (
-            block.physical_steps
-        )
+            self.state = new_state
+            self.count_cursor = new_cursor
+            self._maximum_stored_rows = max(
+                self._maximum_stored_rows,
+                self.count_cursor.stored_row_count,
+            )
+            self._logical_operations += 1
+            self._macro_jumps += 1
+            self._macro_physical_steps += len(
+                labels
+            )
 
-        return MacroTraceItem(
-            macro_label=label,
-            physical_steps=block.physical_steps,
-        )
+            return MacroTraceItem(
+                macro_label=label,
+                physical_steps=len(labels),
+            )
+
+        return None
 
     def _reverse_one_physical(self):
         current = self.state
