@@ -24,7 +24,20 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          python -m unittest -v             tests.test_algebraic_root_trajectory             tests.test_streaming_colex_trajectory             tests.test_weighted_path_trajectory             tests.test_recurrent_macrograph             tests.test_public_graph_trajectory             tests.test_count_field_recurrence
+          python -m unittest -v \
+            tests.test_algebraic_root_trajectory \
+            tests.test_streaming_colex_trajectory \
+            tests.test_weighted_path_trajectory \
+            tests.test_recurrent_macrograph \
+            tests.test_public_graph_trajectory \
+            tests.test_count_field_recurrence \
+            tests.test_floquet_count_field \
+            tests.test_translation_address_trajectory \
+            tests.test_scalar_partition_trajectory \
+            tests.test_seeded_graph_state_machine \
+            tests.test_reversible_fiber_lift \
+            tests.test_lifted_causal_universe \
+            tests.test_endogenous_vertical_dynamics
 
       - name: Run automatic recurrent-core gate
         env:
@@ -79,3 +92,15 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/reversible_fiber_lift_gate.py
+
+      - name: Gate minimal reversible causal lift
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/minimal_reversible_causal_lift_gate.py
+
+      - name: Gate endogenous periodic vertical dynamics
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/endogenous_vertical_dynamics_gate.py
