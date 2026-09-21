@@ -6,6 +6,9 @@ from trajectory_generator.gauge_covariant_vertical_event import (
     cycle_type,
     fixed_point_count,
     is_involution,
+    derive_information_event_action_class,
+    derive_maximal_pairing_cycle_type,
+    involution_cycle_types,
     maximal_pairing_cycle_type,
     maximal_pairing_involutions,
     reversal_involution,
@@ -30,6 +33,34 @@ def phase_graph():
 
 
 class GaugeCovariantVerticalEventTests(unittest.TestCase):
+    def test_event_axioms_uniquely_derive_maximal_pairing_class(self):
+        for size in range(1, 20):
+            derived = derive_maximal_pairing_cycle_type(
+                size
+            )
+            self.assertEqual(
+                derived,
+                maximal_pairing_cycle_type(size),
+            )
+            self.assertIn(
+                derived,
+                involution_cycle_types(size),
+            )
+            self.assertEqual(
+                derive_information_event_action_class(
+                    size,
+                    is_branch=True,
+                ),
+                derived,
+            )
+            self.assertEqual(
+                derive_information_event_action_class(
+                    size,
+                    is_branch=False,
+                ),
+                tuple(1 for _ in range(size)),
+            )
+
     def test_reversal_is_fixed_point_minimal_involution(self):
         for size in range(1, 9):
             value = reversal_involution(size)
