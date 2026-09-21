@@ -812,6 +812,116 @@ Therefore a preferred numeric representative requires **additional public fiber 
 
 GitHub Actions run `35555298953` passed both the cyclic naturality gate and the cyclic-origin no-go gate.
 
+### 33. Horizontal/vertical information geometry and local connection
+
+`trajectory_generator/horizontal_vertical_entropy.py`,
+`trajectory_generator/vertical_dominance.py`,
+`trajectory_generator/vertical_entropy_rate.py`,
+`trajectory_generator/information_clock_statistics.py`,
+`trajectory_generator/fiber_bundle_geometry.py`,
+`trajectory_generator/normalized_vertical_dynamics.py`,
+`trajectory_generator/exact_vertical_connection.py`, and
+`trajectory_generator/seeded_vertical_connection.py`
+
+The horizontal/vertical interpretation is now an exact operational model rather
+than only a visualization.
+
+At physical time `t`, the minimal reversible state space is the
+variable-cardinality fibered space
+
+```text
+X_t = coproduct_v {v} x [0, D_t(v))
+```
+
+where `v` is the current causal node and `D_t(v)` is the number of admissible
+histories ending there. Because the fiber size depends on `v`, this is not a
+classical Cartesian product with one fixed vertical axis.
+
+The exact entropy decomposition is
+
+```text
+H_total(t)
+    = H_horizontal(t)
+    + H_vertical(t).
+```
+
+For any finite positive-entropy recurrent core,
+
+```text
+H_vertical(t) / H_total(t) -> 1
+
+H_vertical(t) / t -> log2(lambda).
+```
+
+The corrected Perron growth factors are:
+
+```text
+candidate      lambda              log2(lambda)
+robust_208     1.220744084606      0.287760787084
+balanced_221   1.206189700118      0.270456820917
+long_239       1.173984996705      0.231413971210
+```
+
+The automatically extracted information clock obeys the exact maximum-entropy
+identity
+
+```text
+bits_per_information_event
+--------------------------------
+mean_physical_steps_per_event
+
+    = log2(lambda).
+```
+
+Normalizing each discrete vertical fiber to `[0,1)`, an incoming physical edge
+`e:u->v` occupies the exact fraction
+
+```text
+q_t(e) = D_t(u) / D_(t+1)(v).
+```
+
+On the recurrent core these widths converge to reverse-Parry edge
+probabilities, and
+
+```text
+E[-log2 q(e)] = log2(lambda).
+```
+
+The final implementation now exposes this geometry directly. A local state is:
+
+```text
+(time, horizontal node, vertical rank).
+```
+
+For one physical edge, forward dynamics embeds the source fiber into the
+corresponding exact predecessor block of the target fiber. Reverse identifies
+the unique block containing the current rank and subtracts its offset.
+
+The packed integer `final_state` is no longer required as the internal
+dynamical variable. It is a compact boundary chart only.
+
+GitHub Actions run `35562749521` passed **43 scientific gates**. At the
+historical frontiers, five final integers per universe were decoded through the
+local-fiber representation and matched the historical decoder exactly:
+
+```text
+candidate      frontier      frontier bits recovered
+robust_208       208                 1,040
+balanced_221     221                 1,105
+long_239         239                 1,195
+```
+
+Each decode used one packed-state `unpack`; all subsequent reverse dynamics ran
+only through local horizontal/vertical fiber states. Re-encoding returned the
+exact original final integer.
+
+A fixed rectangular `horizontal_bits + vertical_bits` representation would be
+less efficient. At the same frontiers, even using only populated horizontal
+states it requires `64 / 66 / 66` integer bits for robust/balanced/long,
+whereas the variable-fiber scalar chart still fits in 63 bits.
+
+See `docs/horizontal_vertical_information_geometry_2026-09-21.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -832,65 +942,86 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The operational target remains satisfied:
+The operational target remains satisfied for the tested constrained universes:
 
 ```text
 (final_state, steps, public universe law)
     -> exact admissible trajectory
 ```
 
-The strongest current formulation separates the reversible object from its numerical chart.
-
-### Intrinsic / forced structure
+The strongest current formulation is now:
 
 ```text
-admissible-history natural extension
-    -> append/remove public causal edge
-    -> horizontal projection to raw causal state
-    -> minimal fiber cardinality |H_t(v)|
-    -> forced predecessor-edge image cardinalities
+public causal universe
+    |
+    +-- horizontal causal node v
+    |
+    +-- variable vertical history fiber F_t(v)
+            |
+            +-- exact predecessor subfibers
+            +-- integer-exact local forward/reverse connection
+            +-- normalized reverse-Parry limit on recurrent cores
+
+final_state
+    = compact serialization/chart of the complete local fiber state
 ```
 
-These are fixed by exact reversible completion.
-
-### Gauge / coordinate structure
+The packed integer is therefore no longer conceptually the dynamics itself.
+After one public `unpack`, reverse decoding can proceed entirely as:
 
 ```text
-integer vertical labels
-ordering of predecessor blocks
-specific numeric permutation inside a fiber
-packed final_state value
+(current node, current vertical rank)
+    -> identify predecessor subfiber
+    -> recover predecessor edge
+    -> subtract block offset
+    -> predecessor node + predecessor rank
+    -> repeat
 ```
 
-These are chart choices. Minimal charts form a gauge groupoid and are related by exact time-dependent conjugacies.
+The public seed node recovers the bootstrap bits and each reversed edge recovers
+the next trajectory bit. Run `35562749521` verified exact equality with the
+historical final-state decoder through frontiers `208 / 221 / 239`.
 
-For an unstructured fiber with `n >= 3`, the full gauge group is `S_n` and `Z(S_n)` is trivial. Therefore no nontrivial numeric vertical permutation can be completely chart-independent.
-
-### Strongest current nontrivial vertical statement
-
-The causal universe itself supplies a coordinate-free information event:
+The intrinsic information geometry currently has four equivalent asymptotic
+rate descriptions:
 
 ```text
-out_degree(source) > 1
+log2(lambda)
+
+= trajectory entropy / physical step
+= vertical-memory growth / physical step
+= information-event entropy / mean event length
+= mean reverse vertical contraction information.
 ```
 
-At such an event, the current proposal assigns the unique **fixed-point-minimal involution conjugacy class**. Deterministic states receive the identity class. This is derived from self-inversion, gauge covariance and maximal state participation.
+Numeric labels inside a fiber, ordering of equal predecessor blocks, and packed
+integer layout remain chart/gauge choices. Fiber cardinalities, predecessor
+block sizes, causal projection, entropy rates, and reverse-Parry block widths
+are invariant consequences of the public trajectory language.
 
-A numeric map such as
+The next engineering target is no longer another vertical permutation law.
+It is to make the exact local connection the primary runtime API, benchmark it
+against the packed scalar decoder, reduce repeated scalar-functional work on
+long reverse walks, and test larger state widths. Reverse-Parry geometry may be
+used as a search/acceleration hint only if exact integer block boundaries remain
+the final authority.
 
-```text
-y -> n - 1 - y
-```
+The fundamental information bound remains unchanged: trajectories longer than
+the state width are recoverable here only because the public universe restricts
+the admissible family.
 
-is only one representative of that class.
-
-GitHub Actions run `35555298953` passed all 29 scientific gates, including the general completion theorem, full fiber-gauge no-go, gauge groupoid, real topological chart equivalence, conditional cyclic-group naturality, cyclic-origin no-go, and the gauge-covariant information-event final-state gates.
-
-The remaining research question is now sharply defined: **does the public universe generate additional intrinsic structure on each history fiber that selects a preferred representative?** Possible sources include recursive prefix structure, symbol-preserving algebra, recurrent information-clock structure, or another endogenous composition law. If no such structure exists, the conjugacy class rather than a particular integer permutation is the correct final physical description.
 
 ## Quick start
 
 ```bash
+python experiments/seeded_vertical_connection_gate.py
+python experiments/exact_vertical_connection_gate.py
+python experiments/normalized_vertical_dynamics_gate.py
+python experiments/fiber_bundle_geometry_gate.py
+python experiments/information_clock_vertical_rate_gate.py
+python experiments/vertical_entropy_rate_gate.py
+python experiments/vertical_dominance_gate.py
+python experiments/horizontal_vertical_entropy_gate.py
 python experiments/branch_reflection_vertical_gate.py
 python experiments/vertical_gauge_automorphism_gate.py
 python experiments/gauge_invariance_no_go_gate.py
