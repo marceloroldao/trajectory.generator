@@ -257,3 +257,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/vertical_entropy_rate_gate.py
+
+      - name: Gate information clock against vertical memory rate
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/information_clock_vertical_rate_gate.py
