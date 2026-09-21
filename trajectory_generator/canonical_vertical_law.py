@@ -246,3 +246,37 @@ def build_canonical_phase_merge_lift(machine):
         machine,
         CANONICAL_PHASE_MERGE_SPEC,
     )
+
+
+def derive_minimal_partition_law() -> CanonicalVerticalLawSpec:
+    """Derive the minimum law from two structural axioms.
+
+    Axiom 1 — temporal orientation:
+        orientation must be non-constant and use the smallest public period.
+        At period P, the only available non-constant temporal primitive in this
+        grammar is phase=t mod P.
+
+    Axiom 2 — target-partition rotation:
+        rotation must distinguish predecessor sub-fibers inside one target
+        causal fiber using a target-local edge coordinate.  Of the primitive
+        structural features, incoming_index is the canonical ordinal of exactly
+        that partition.  outgoing_index belongs to the source branch, while
+        source_branch_excess and target_merge_excess are node-level values and
+        cannot label each incoming sub-fiber individually.
+
+    With unit coefficients, these axioms yield:
+
+        sigma = (-1)^phase
+        b = incoming_index
+    """
+    return CanonicalVerticalLawSpec(
+        period_multiple=1,
+        orientation_features=("phase",),
+        shift_features=("incoming_index",),
+    )
+
+
+if derive_minimal_partition_law() != CANONICAL_PHASE_MERGE_SPEC:
+    raise AssertionError(
+        "frozen canonical law disagrees with structural derivation"
+    )
