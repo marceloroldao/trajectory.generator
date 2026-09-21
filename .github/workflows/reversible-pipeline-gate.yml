@@ -67,3 +67,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/final_state_only_gate.py
+
+      - name: Quantify raw causal-state information gap
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/causal_state_information_gap.py
