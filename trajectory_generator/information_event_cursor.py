@@ -35,11 +35,17 @@ from .composed_vertical_connection import (
 from .exact_vertical_connection import (
     LocalFiberState,
 )
+from .information_clock_statistics import (
+    information_clock_statistics,
+)
 from .information_clock_trace import (
     FallbackTraceItem,
     InformationClockTrace,
     InformationClockTraceCodec,
     MacroTraceItem,
+)
+from .normalized_vertical_dynamics import (
+    reverse_parry_geometry,
 )
 from .vertical_connection_cursor import (
     VerticalConnectionBackwardCursor,
@@ -114,8 +120,30 @@ class InformationEventBackwardCursor:
         self.composed = ComposedVerticalConnection(
             self.connection
         )
+
+        reverse_priority = {}
+        structure = trace_codec.structure
+        if (
+            structure.branch_nodes
+            and structure.macro_edges
+            and structure.growth_rate > 0.0
+        ):
+            clock = information_clock_statistics(
+                structure.branch_nodes,
+                structure.macro_edges,
+                growth_rate=structure.growth_rate,
+            )
+            reverse = reverse_parry_geometry(
+                structure.branch_nodes,
+                clock,
+            )
+            reverse_priority = {
+                row.label: row.probability
+                for row in reverse.reverse_probabilities
+            }
+
         self.macro_candidates = {}
-        for macro in trace_codec.structure.macro_edges:
+        for macro in structure.macro_edges:
             labels = trace_codec.macro_edge_labels[
                 macro.label
             ]
@@ -128,7 +156,17 @@ class InformationEventBackwardCursor:
             ).append((
                 macro.label,
                 plan,
+                reverse_priority.get(
+                    macro.label,
+                    0.0,
+                ),
             ))
+
+        for target in self.macro_candidates:
+            self.macro_candidates[target].sort(
+                key=lambda row: row[2],
+                reverse=True,
+            )
 
     @property
     def metrics(self) -> InformationEventCursorMetrics:
@@ -174,7 +212,7 @@ class InformationEventBackwardCursor:
 
         base_vectors_by_distance = {}
 
-        for macro_label, plan in candidates:
+        for macro_label, plan, _priority in candidates:
             distance = plan.physical_steps
             if distance > self.state.time:
                 continue
