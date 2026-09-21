@@ -188,3 +188,146 @@ class VerticalConnectionBackwardCursor:
             fiber_size=previous_size,
         )
         return chosen
+
+
+
+@dataclass(frozen=True)
+class ForwardCursorMetrics:
+    forward_steps: int
+    reachable_state_count: int
+
+    @property
+    def persistent_count_integers(self) -> int:
+        return self.reachable_state_count
+
+    @property
+    def peak_count_integers_during_step(self) -> int:
+        return 2 * self.reachable_state_count
+
+
+class VerticalConnectionForwardCursor:
+    """Advance exact local fibers from one public singleton start state."""
+
+    def __init__(
+        self,
+        connection: ExactVerticalConnection,
+        start_node,
+        start_rank: int = 0,
+    ) -> None:
+        self.connection = connection
+        self.machine = connection.machine
+        self.field = self.machine.field
+        self.vector = self.field.initial_vector
+        self._forward_steps = 0
+
+        index = self.field.node_index.get(start_node)
+        if index is None:
+            raise ValueError("start node outside reachable graph")
+        size = self.vector[index]
+        if size <= 0:
+            raise ValueError("start node has empty initial fiber")
+        if not 0 <= start_rank < size:
+            raise ValueError("start rank outside initial fiber")
+
+        self.state = LocalFiberState(
+            time=0,
+            node=start_node,
+            rank=start_rank,
+            fiber_size=size,
+        )
+
+    @property
+    def metrics(self) -> ForwardCursorMetrics:
+        return ForwardCursorMetrics(
+            forward_steps=self._forward_steps,
+            reachable_state_count=(
+                self.field.reachable_state_count
+            ),
+        )
+
+    def forward(
+        self,
+        edge_label: str,
+    ) -> WeightedEdge:
+        edge = self.connection.codec.edge_by_label.get(
+            edge_label
+        )
+        if edge is None:
+            raise ValueError("unknown edge label")
+        if edge.source != self.state.node:
+            raise ValueError(
+                "edge does not leave horizontal causal node"
+            )
+
+        source_index = self.field.node_index[
+            edge.source
+        ]
+        source_size = self.vector[source_index]
+        if source_size != self.state.fiber_size:
+            raise AssertionError(
+                "forward cursor source fiber size diverged"
+            )
+        if not 0 <= self.state.rank < source_size:
+            raise AssertionError(
+                "forward cursor rank outside source fiber"
+            )
+
+        offset = 0
+        found = False
+        for incoming in self.connection.codec.incoming[
+            edge.target
+        ]:
+            if incoming == edge:
+                found = True
+                break
+            offset += self.vector[
+                self.field.node_index[incoming.source]
+            ]
+        if not found:
+            raise ValueError(
+                "edge is not incoming to its target"
+            )
+
+        next_vector = self.field.step_vector(
+            self.vector
+        )
+        target_size = next_vector[
+            self.field.node_index[edge.target]
+        ]
+        next_rank = offset + self.state.rank
+
+        if not 0 <= next_rank < target_size:
+            raise AssertionError(
+                "forward embedding lies outside target fiber"
+            )
+
+        self.vector = next_vector
+        self._forward_steps += 1
+        self.state = LocalFiberState(
+            time=self.state.time + 1,
+            node=edge.target,
+            rank=next_rank,
+            fiber_size=target_size,
+        )
+        return edge
+
+    def pack_current(self) -> int:
+        offset = 0
+        for node in self.machine.nodes:
+            if node == self.state.node:
+                break
+            offset += self.vector[
+                self.field.node_index[node]
+            ]
+        else:
+            raise AssertionError(
+                "current node missing from public node order"
+            )
+
+        packed = offset + self.state.rank
+        total = sum(self.vector)
+        if not 0 <= packed < total:
+            raise AssertionError(
+                "packed forward cursor state outside family"
+            )
+        return packed
