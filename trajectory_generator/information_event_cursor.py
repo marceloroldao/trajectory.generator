@@ -172,7 +172,7 @@ class InformationEventBackwardCursor:
         if not candidates:
             return None
 
-        vectors_by_distance = {}
+        base_vectors_by_distance = {}
 
         for macro_label, plan in candidates:
             distance = plan.physical_steps
@@ -181,26 +181,34 @@ class InformationEventBackwardCursor:
             if plan.target != self.state.node:
                 continue
 
-            source_vector = vectors_by_distance.get(
+            base_lookup = base_vectors_by_distance.get(
                 distance
             )
-            if source_vector is None:
-                source_vector = (
-                    self.count_cursor.vector_at_back(
+            if base_lookup is None:
+                base_lookup = (
+                    self.count_cursor.period_base_vector_at_back(
                         distance
                     )
                 )
-                vectors_by_distance[
+                base_vectors_by_distance[
                     distance
-                ] = source_vector
+                ] = base_lookup
+
+            base_vector, phase_offset = base_lookup
+            start_time = (
+                self.state.time - distance
+            )
+            if (
+                phase_offset
+                != plan.source_phase_offset
+            ):
+                continue
 
             block = (
-                self.composed.embedding_from_source_vector(
+                self.composed.embedding_from_period_base_vector(
                     plan,
-                    start_time=(
-                        self.state.time - distance
-                    ),
-                    source_vector=source_vector,
+                    start_time=start_time,
+                    base_vector=base_vector,
                     target_size=self.state.fiber_size,
                 )
             )
