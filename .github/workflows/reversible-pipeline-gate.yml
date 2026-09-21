@@ -314,3 +314,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/state_width_entropy_scaling_gate.py
+
+      - name: Audit reverse merges inside information-clock flights
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/information_clock_reverse_unifilar_audit.py
