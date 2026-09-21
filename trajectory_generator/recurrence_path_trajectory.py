@@ -65,6 +65,189 @@ class RecurrencePathCodec(WeightedPathCodec):
         return self.count_field.total(physical_steps)
 
 
+    def _pack_with_vector(
+        self,
+        node: Node,
+        rank: int,
+        vector: Sequence[int],
+    ) -> int:
+        offset = 0
+        for candidate in self.nodes:
+            count = vector[self.count_field.node_index[candidate]]
+            if candidate == node:
+                if not 0 <= rank < count:
+                    raise ValueError("rank outside endpoint bucket")
+                state = offset + rank
+                if self.width is not None and state >= (1 << self.width):
+                    raise ValueError("state exceeds configured width")
+                return state
+            offset += count
+        raise AssertionError("unreachable endpoint bucket")
+
+    def _unpack_with_vector(
+        self,
+        state: int,
+        vector: Sequence[int],
+    ) -> tuple[Node, int]:
+        if state < 0:
+            raise ValueError("state must be non-negative")
+        total = sum(vector)
+        if state >= total:
+            raise ValueError("state outside exact-length path family")
+
+        remaining = state
+        for node in self.nodes:
+            count = vector[self.count_field.node_index[node]]
+            if remaining < count:
+                return node, remaining
+            remaining -= count
+        raise AssertionError("unreachable endpoint bucket")
+
+    def encode_edges(
+        self,
+        start_node: Node,
+        edge_labels,
+    ) -> tuple[int, int]:
+        """Encode sequentially with one rolling public count row."""
+        if start_node not in self.start_set:
+            raise ValueError("node is not an allowed start")
+
+        current_counts = self.count_field.initial_vector
+        state = self._pack_with_vector(
+            start_node,
+            0,
+            current_counts,
+        )
+        physical_steps = 0
+
+        for label in edge_labels:
+            source, rank = self._unpack_with_vector(
+                state,
+                current_counts,
+            )
+            try:
+                edge = self.edge_by_label[label]
+            except KeyError as exc:
+                raise ValueError("unknown edge label") from exc
+
+            if edge.source != source:
+                raise ValueError("edge does not leave current endpoint")
+            if edge.length != 1:
+                raise AssertionError(
+                    "recurrence graph codec expects unit physical edges"
+                )
+
+            next_counts = self.count_field.step_vector(
+                current_counts
+            )
+            if (
+                self.width is not None
+                and sum(next_counts) > (1 << self.width)
+            ):
+                raise ValueError(
+                    "new exact-length family exceeds configured width"
+                )
+
+            offset = 0
+            selected_rank = None
+            for incoming in self.incoming[edge.target]:
+                block = current_counts[
+                    self.count_field.node_index[incoming.source]
+                ]
+                if incoming == edge:
+                    if rank >= block:
+                        raise AssertionError(
+                            "predecessor rank outside incoming block"
+                        )
+                    selected_rank = offset + rank
+                    break
+                offset += block
+
+            if selected_rank is None:
+                raise AssertionError(
+                    "edge missing from target incoming list"
+                )
+
+            state = self._pack_with_vector(
+                edge.target,
+                selected_rank,
+                next_counts,
+            )
+            current_counts = next_counts
+            physical_steps += 1
+
+        return state, physical_steps
+
+    def decode_edges(
+        self,
+        final_state: int,
+        physical_steps: int,
+    ):
+        """Decode with the fixed-memory backward count-field cursor."""
+        if physical_steps < 0:
+            raise ValueError("physical_steps must be >= 0")
+
+        cursor = self.count_field.backward_cursor(
+            physical_steps
+        )
+        current = final_state
+        reversed_edges = []
+
+        while cursor.time > 0:
+            current_counts = cursor.current_vector()
+            previous_counts = cursor.previous_vector()
+
+            target, rank = self._unpack_with_vector(
+                current,
+                current_counts,
+            )
+
+            offset = 0
+            chosen = None
+            previous_rank = None
+
+            for edge in self.incoming[target]:
+                if edge.length != 1:
+                    raise AssertionError(
+                        "recurrence graph codec expects unit physical edges"
+                    )
+                block = previous_counts[
+                    self.count_field.node_index[edge.source]
+                ]
+
+                if rank < offset + block:
+                    chosen = edge
+                    previous_rank = rank - offset
+                    break
+                offset += block
+
+            if chosen is None or previous_rank is None:
+                raise ValueError(
+                    "state has no valid predecessor physical edge"
+                )
+
+            current = self._pack_with_vector(
+                chosen.source,
+                previous_rank,
+                previous_counts,
+            )
+            reversed_edges.append(chosen)
+            cursor.step_back()
+
+        initial_counts = self.count_field.initial_vector
+        start, rank = self._unpack_with_vector(
+            current,
+            initial_counts,
+        )
+        if rank != 0 or start not in self.start_set:
+            raise AssertionError(
+                "reverse did not terminate in an initial state"
+            )
+
+        reversed_edges.reverse()
+        return start, reversed_edges
+
+
 def build_recurrence_path_codec(
     adjacency: Mapping[Node, Sequence[Node]],
     *,
