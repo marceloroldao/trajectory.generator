@@ -110,6 +110,20 @@ is preserved as a structural property of the weighted language, but it is
 not promoted as the conservative streaming frontier because the immediately
 preceding complete prefix family is over capacity.
 
+
+## Scope correction
+
+This codec is **branch-aligned**: its address state exists at information-clock
+boundaries, after a complete macro-edge has finished. Therefore the `T=233`
+result is a frontier for branch-aligned exact-length macro-paths, not a proof
+that arbitrary physical prefixes ending inside a deterministic flight are
+addressable by this codec alone.
+
+The later `trajectory_generator/recurrent_macrograph.py` construction removes
+that restriction by building a second address directly on every physical edge
+of the automatically selected recurrent core. See
+`docs/automatic_endogenous_recurrent_pipeline_2026-09-20.md`.
+
 ## Meaning
 
 This closes the loop between the earlier information-clock analysis and an
