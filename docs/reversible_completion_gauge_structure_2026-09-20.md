@@ -460,3 +460,142 @@ as:
 
 If no such structure exists, the gauge class — not one numeric permutation —
 is the correct final level of description.
+
+
+---
+
+## Executed integrated validation
+
+GitHub Actions run:
+
+```text
+35555298953
+workflow: reversible-pipeline-gate
+conclusion: success
+```
+
+All 29 scientific gates passed.
+
+The general completion/gauge results reported:
+
+```text
+GENERAL_REVERSIBLE_COMPLETION_FULL_GATE
+PASS=True
+fiber sizes and edge-block cardinalities are forced;
+internal vertical permutations are gauge freedom
+
+NATURAL_EXTENSION_GAUGE_FULL_GATE
+PASS=True
+history space is invariant;
+vertical coordinates are gauge charts
+
+GAUGE_INVARIANCE_NO_GO_FULL_GATE
+PASS=True
+intrinsic object = admissible-history natural extension
+numeric vertical law = gauge representation unless extra fiber structure exists
+
+REVERSIBLE_COMPLETION_GROUPOID_FULL_GATE
+PASS=True
+minimal reversible lifts are unique up to
+history-preserving time-dependent fiber gauge isomorphism
+```
+
+The real topological universes also passed direct chart-equivalence gates:
+
+```text
+robust_208
+  frontier=208
+  static/phase-reflection/phase-merge history identity=True
+  frontier coordinate changes=4/5
+
+balanced_221
+  frontier=221
+  history identity=True
+  frontier coordinate changes=5/5
+
+long_239
+  frontier=239
+  history identity=True
+  frontier coordinate changes=5/5
+```
+
+So different final integers/charts can represent the same underlying history
+after the correct gauge conversion.
+
+### Gauge-covariant information-event action
+
+The strongest current event law also passed end-to-end:
+
+```text
+robust_208
+  branch public edges=38
+  deterministic public edges=27
+  maximal-pairing class=True
+  deterministic identity=True
+  nontrivial branch classes=132
+  small mapping changes=269
+  frontier mapping changes=5/5
+  exhaustive roundtrip=True
+  frontier roundtrip=True
+
+balanced_221
+  branch public edges=24
+  deterministic public edges=25
+  maximal-pairing class=True
+  deterministic identity=True
+  nontrivial branch classes=92
+  small mapping changes=247
+  frontier mapping changes=5/5
+  exhaustive roundtrip=True
+  frontier roundtrip=True
+
+long_239
+  branch public edges=20
+  deterministic public edges=24
+  maximal-pairing class=True
+  deterministic identity=True
+  nontrivial branch classes=76
+  small mapping changes=212
+  frontier mapping changes=5/5
+  exhaustive roundtrip=True
+  frontier roundtrip=True
+```
+
+The class derivation itself was checked exactly for small fibers:
+
+```text
+n=1 -> (1)
+n=2 -> (2)
+n=3 -> (1,2)
+n=4 -> (2,2)
+n=5 -> (1,2,2)
+n=6 -> (2,2,2)
+```
+
+and the derived class matched the fixed-point-minimal involution class in every
+case.
+
+### Conditional algebraic structure
+
+The same run also passed:
+
+```text
+CYCLIC_FIBER_NATURALITY_FULL_GATE
+PASS=True
+```
+
+showing that if a fiber is endowed with a canonical `Z_n` group law, inversion
+is natural under every group automorphism.
+
+But it also passed:
+
+```text
+FIBER_GROUP_STRUCTURE_NO_GO_FULL_GATE
+PASS=True
+```
+
+showing that fiber cardinality alone cannot select the distinguished origin
+needed for that group law.
+
+Therefore the cyclic-group interpretation remains conditional, not established
+for the current history fibers.
