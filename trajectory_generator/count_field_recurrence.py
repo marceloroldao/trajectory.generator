@@ -37,7 +37,7 @@ This is public-law state, not trajectory-specific history.
 
 from __future__ import annotations
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from fractions import Fraction
 from typing import Hashable, Mapping, Sequence
 
@@ -243,6 +243,135 @@ def _nth_recurrence_weights(
     return tuple(result)
 
 
+
+class BackwardCountCursor:
+    """Walk an exact count field backward with fixed memory.
+
+    After the transient factor x^m is removed from the minimal recurrence, let
+
+        W_(n+r) = sum(a_j * W_(n+j), j=0..r-1)
+
+    with a_0 != 0 and W_n = D_(n+m).
+
+    A window containing D_(t-r+1)..D_t can therefore recover D_(t-r)
+    exactly while moving one physical step backward.
+    """
+
+    def __init__(
+        self,
+        field: "CountFieldRecurrence",
+        final_time: int,
+    ) -> None:
+        if final_time < 0:
+            raise ValueError("final_time must be >= 0")
+
+        self.field = field
+        self.time = final_time
+        self.rows = None
+
+        reduced = field.reduced_coefficients
+        self.window_order = len(reduced)
+
+        if self.window_order == 0:
+            if final_time >= field.order:
+                raise ValueError(
+                    "finite-support recurrence cannot reverse beyond basis"
+                )
+            return
+
+        if reduced[0] == 0:
+            raise AssertionError(
+                "reduced recurrence must have non-zero constant term"
+            )
+
+        # A full reversible window exists once t >= d-1.
+        if final_time >= field.order - 1:
+            start = final_time - self.window_order + 1
+            if start < field.transient_factor_power:
+                raise AssertionError("backward window enters transient region")
+
+            first = field.vector_at(start)
+            rows = [first]
+            for _ in range(self.window_order - 1):
+                rows.append(field.step_vector(rows[-1]))
+            self.rows = deque(rows)
+
+    @property
+    def stored_row_count(self) -> int:
+        return 0 if self.rows is None else len(self.rows)
+
+    def current_vector(self) -> tuple[int, ...]:
+        if self.time < 0:
+            raise ValueError("cursor is before t=0")
+
+        if self.rows is not None:
+            return self.rows[-1]
+
+        if self.time >= self.field.order:
+            return self.field.vector_at(self.time)
+
+        return self.field.basis_vectors[self.time]
+
+    def previous_vector(self) -> tuple[int, ...]:
+        if self.time <= 0:
+            raise ValueError("t=0 has no previous count row")
+
+        if self.rows is not None and len(self.rows) >= 2:
+            return self.rows[-2]
+
+        previous = self.time - 1
+        if previous < self.field.order:
+            return self.field.basis_vectors[previous]
+
+        return self.field.vector_at(previous)
+
+    def step_back(self) -> None:
+        if self.time <= 0:
+            raise ValueError("cannot step before t=0")
+
+        field = self.field
+        reduced = field.reduced_coefficients
+
+        # For t >= d, the current window is:
+        #   D_(s+1), ..., D_(s+r)
+        # where s = t-r >= m.
+        # Recover D_s by solving the reduced recurrence backward.
+        if self.rows is not None and self.time >= field.order:
+            constant = reduced[0]
+            numerator = list(self.rows[-1])
+
+            for j in range(1, self.window_order):
+                coefficient = reduced[j]
+                if not coefficient:
+                    continue
+                row = self.rows[j - 1]
+                for i, value in enumerate(row):
+                    numerator[i] -= coefficient * value
+
+            previous_oldest = []
+            for value in numerator:
+                if value % constant != 0:
+                    raise AssertionError(
+                        "backward count recurrence is not exactly divisible"
+                    )
+                previous_oldest.append(value // constant)
+
+            if any(value < 0 for value in previous_oldest):
+                raise AssertionError(
+                    "backward count recurrence produced negative count"
+                )
+
+            self.rows.pop()
+            self.rows.appendleft(tuple(previous_oldest))
+
+        elif self.rows is not None and self.time == field.order - 1:
+            # The next step enters the transient basis region, where the fixed
+            # Krylov basis already contains every required count row.
+            self.rows = None
+
+        self.time -= 1
+
+
 class CountFieldRecurrence:
     """Exact bounded-memory endpoint-count oracle for a public graph."""
 
@@ -380,6 +509,9 @@ class CountFieldRecurrence:
 
     def total(self, t: int) -> int:
         return sum(self.vector_at(t))
+
+    def backward_cursor(self, final_time: int) -> BackwardCountCursor:
+        return BackwardCountCursor(self, final_time)
 
     def validate_recurrence(self, extra_steps: int = 32) -> bool:
         if extra_steps < 0:
