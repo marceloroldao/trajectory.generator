@@ -158,20 +158,114 @@ def main():
             else float("inf")
         )
 
+        direct_encode_machine = build(params)
+        direct_encode_oracle = (
+            direct_encode_machine.connection.machine.oracle
+        )
+        direct_encode_original = (
+            direct_encode_oracle.scalar_at
+        )
+        direct_encode_calls = 0
+
+        def counted_direct_encode(*args, **kwargs):
+            nonlocal direct_encode_calls
+            direct_encode_calls += 1
+            return direct_encode_original(*args, **kwargs)
+
+        direct_encode_oracle.scalar_at = (
+            counted_direct_encode
+        )
+        start = perf_counter()
+        direct_encoded = [
+            direct_encode_machine.encode_direct(bits)
+            for bits in direct_bits
+        ]
+        direct_encode_seconds = (
+            perf_counter() - start
+        )
+
+        cursor_encode_machine = build(params)
+        cursor_encode_oracle = (
+            cursor_encode_machine.connection.machine.oracle
+        )
+        cursor_encode_original = (
+            cursor_encode_oracle.scalar_at
+        )
+        cursor_encode_calls = 0
+
+        def counted_cursor_encode(*args, **kwargs):
+            nonlocal cursor_encode_calls
+            cursor_encode_calls += 1
+            return cursor_encode_original(*args, **kwargs)
+
+        cursor_encode_oracle.scalar_at = (
+            counted_cursor_encode
+        )
+        start = perf_counter()
+        cursor_encoded = [
+            cursor_encode_machine.encode(bits)
+            for bits in cursor_bits
+        ]
+        cursor_encode_seconds = (
+            perf_counter() - start
+        )
+
+        expected_encoded = [
+            (state, frontier)
+            for state in samples
+        ]
+        encode_identity = (
+            direct_encoded
+            == cursor_encoded
+            == expected_encoded
+        )
+
+        _, _, forward_metrics = (
+            cursor_encode_machine.encode_with_cursor_metrics(
+                cursor_bits[-1]
+            )
+        )
+
+        passed = (
+            passed
+            and direct_encode_calls > 0
+            and cursor_encode_calls == 0
+            and encode_identity
+            and forward_metrics is not None
+            and forward_metrics.forward_steps
+            == expected_reverse_steps
+        )
+
+        encode_speedup = (
+            direct_encode_seconds / cursor_encode_seconds
+            if cursor_encode_seconds > 0.0
+            else float("inf")
+        )
+
         print(
             "CURSOR_VERTICAL_CONNECTION_PERF_GATE",
             "name", name,
             "PASS", passed,
             "frontier", frontier,
             "samples", len(samples),
-            "direct_scalar_at_calls", direct_calls,
-            "cursor_scalar_at_calls", cursor_calls,
-            "direct_seconds",
+            "direct_decode_scalar_at_calls", direct_calls,
+            "cursor_decode_scalar_at_calls", cursor_calls,
+            "direct_decode_seconds",
             f"{direct_seconds:.6f}",
-            "cursor_seconds",
+            "cursor_decode_seconds",
             f"{cursor_seconds:.6f}",
-            "timing_speedup",
+            "decode_timing_speedup",
             f"{speedup:.3f}",
+            "direct_encode_scalar_at_calls",
+            direct_encode_calls,
+            "cursor_encode_scalar_at_calls",
+            cursor_encode_calls,
+            "direct_encode_seconds",
+            f"{direct_encode_seconds:.6f}",
+            "cursor_encode_seconds",
+            f"{cursor_encode_seconds:.6f}",
+            "encode_timing_speedup",
+            f"{encode_speedup:.3f}",
             "reverse_steps",
             metrics.reverse_steps if metrics else None,
             "stored_floquet_rows",
@@ -190,6 +284,18 @@ def main():
             (
                 metrics.reachable_state_count
                 if metrics
+                else None
+            ),
+            "forward_persistent_count_integers",
+            (
+                forward_metrics.persistent_count_integers
+                if forward_metrics
+                else None
+            ),
+            "forward_peak_count_integers",
+            (
+                forward_metrics.peak_count_integers_during_step
+                if forward_metrics
                 else None
             ),
             "timing_is_gate",
