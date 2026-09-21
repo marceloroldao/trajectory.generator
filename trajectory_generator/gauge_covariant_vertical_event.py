@@ -228,3 +228,78 @@ class MaximalPairingBranchLift(
 
 def build_maximal_pairing_branch_lift(machine):
     return MaximalPairingBranchLift(machine)
+
+
+def involution_cycle_types(size: int) -> tuple[tuple[int, ...], ...]:
+    """All possible cycle types of involutions on an n-element fiber."""
+    if size < 1:
+        raise ValueError("size must be >= 1")
+
+    rows = []
+    for transpositions in range(size // 2 + 1):
+        fixed = size - 2 * transpositions
+        rows.append(
+            tuple(
+                sorted(
+                    (1,) * fixed
+                    + (2,) * transpositions
+                )
+            )
+        )
+    return tuple(rows)
+
+
+def fixed_points_from_cycle_type(
+    signature: tuple[int, ...],
+) -> int:
+    return sum(
+        1
+        for length in signature
+        if length == 1
+    )
+
+
+def derive_maximal_pairing_cycle_type(
+    size: int,
+) -> tuple[int, ...]:
+    """Derive the unique involution class with minimum fixed points.
+
+    Axioms for an information-event vertical action:
+
+    1. the action is an involution, so the same local law is its own inverse;
+    2. gauge-invariant content is only the conjugacy class/cycle type;
+    3. an information event should involve the largest possible number of
+       vertical states, equivalently minimize fixed points.
+
+    Among involution cycle types, minimizing fixed points uniquely maximizes
+    the number of 2-cycles and yields maximal_pairing_cycle_type(size).
+    """
+    types = involution_cycle_types(size)
+    minimum = min(
+        fixed_points_from_cycle_type(signature)
+        for signature in types
+    )
+    winners = tuple(
+        signature
+        for signature in types
+        if fixed_points_from_cycle_type(signature)
+        == minimum
+    )
+
+    if len(winners) != 1:
+        raise AssertionError(
+            "minimum-fixed-point involution class is not unique"
+        )
+    return winners[0]
+
+
+def derive_information_event_action_class(
+    size: int,
+    *,
+    is_branch: bool,
+) -> tuple[int, ...]:
+    if size < 1:
+        raise ValueError("size must be >= 1")
+    if not is_branch:
+        return tuple(1 for _ in range(size))
+    return derive_maximal_pairing_cycle_type(size)
