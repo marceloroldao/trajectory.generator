@@ -666,3 +666,182 @@ represent forward/reverse evolution directly as horizontal transition plus
 vertical subfiber embedding, while retaining integer-exact boundaries generated
 from the existing Floquet scalar recurrence.  That would expose the geometry
 directly instead of only through the packed scalar address.
+
+
+---
+
+## 16. Exact local vertical connection
+
+The horizontal/vertical geometry is now exposed as the operational dynamical
+state rather than only inferred from the packed integer.
+
+Implementation:
+
+```text
+trajectory_generator/exact_vertical_connection.py
+```
+
+Local state:
+
+```text
+(time, horizontal node, vertical rank, fiber size)
+```
+
+For edge `e:u->v` at transition time `t`:
+
+```text
+source fiber size = D_t(u)
+target fiber size = D_(t+1)(v)
+
+block start = public exact incoming offset
+
+forward:
+    (u,r) -> (v, block_start + r)
+
+reverse:
+    inspect target rank
+    locate unique incoming block
+    recover edge e
+    r_prev = r_target - block_start
+```
+
+The normalized block offset and width are also exposed as exact rational
+`Fraction` values.
+
+The packed integer is not used by `forward()` or `reverse()`.
+
+It is only a boundary chart:
+
+```text
+unpack:
+    final integer -> (node,rank)
+
+pack:
+    (node,rank) -> final integer
+```
+
+GitHub Actions run `35562749521` passed the complete 43-gate workflow.
+
+The exact connection gate reported:
+
+```text
+robust_208
+  small local steps checked = 459
+  exact partitions checked  = 124
+  frontier samples          = 5
+  frontier edges reversed   = 1,025
+
+balanced_221
+  small local steps checked = 418
+  exact partitions checked  = 104
+  frontier samples          = 5
+  frontier edges reversed   = 1,090
+
+long_239
+  small local steps checked = 366
+  exact partitions checked  = 92
+  frontier samples          = 5
+  frontier edges reversed   = 1,180
+```
+
+Every local reconstruction repacked to the original final integer.
+
+`packed_state_used_as_dynamics=False` in all three frontier gates.
+
+---
+
+## 17. Final-state-only bit recovery through local fibers
+
+The seeded wrapper:
+
+```text
+trajectory_generator/seeded_vertical_connection.py
+```
+
+preserves the external contract:
+
+```text
+decode(final_state, steps)
+    -> exact admissible bit trajectory
+```
+
+but changes the internal process.
+
+Decode now performs:
+
+```text
+1. one unpack of final_state into the final local fiber coordinate;
+2. repeated local vertical reverse steps;
+3. recovery of one public edge symbol per reversed transition;
+4. recovery of the initial public seed from the singleton time-zero fiber;
+5. concatenation of seed bits and recovered edge bits.
+```
+
+The packed integer is not updated during reverse dynamics.
+
+Encode performs the dual operation:
+
+```text
+seed
+    -> singleton initial local fiber
+    -> local horizontal/vertical forward dynamics
+    -> one final pack
+```
+
+Run `35562749521` passed exact comparison against the historical decoder:
+
+```text
+candidate      small addresses    frontier samples    bits recovered
+robust_208            288                 5                1,040
+balanced_221          270                 5                1,105
+long_239              234                 5                1,195
+```
+
+For every frontier sample:
+
+```text
+local decoder bits
+    = historical final-state decoder bits
+
+local re-encode
+    = original final_state
+```
+
+and:
+
+```text
+packed chart operations per decode = 1
+packed state internal dynamics     = false
+```
+
+This establishes the operational target in the horizontal/vertical
+representation itself:
+
+```text
+(final_state, steps, public law)
+    -> unpack once
+    -> exact local fiber reverse
+    -> original admissible trajectory
+```
+
+No external trajectory log or branch map is introduced.
+
+---
+
+## Current next target
+
+The main open implementation problem has shifted.
+
+It is no longer necessary to search for a preferred numerical vertical
+permutation in order to recover the trajectory.
+
+The next useful target is to simplify the runtime around the local connection:
+
+1. expose the exact subfiber connection as the primary public codec interface;
+2. retain scalar `final_state` only as serialization;
+3. reduce repeated scalar-functional evaluations during long reverse walks;
+4. investigate whether recurrent reverse-Parry limits can accelerate candidate
+   block selection while exact integer boundaries remain the final authority;
+5. benchmark direct local decoding against the current packed scalar decoder.
+
+The mathematical information bound remains unchanged.
