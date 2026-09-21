@@ -34,7 +34,7 @@ from trajectory_generator.information_clock_trace import (
 )
 from trajectory_generator.information_event_cursor import (
     InformationEventBackwardCursor,
-    InformationEventRuntimePlan,
+    InformationEventDecoder,
 )
 from trajectory_generator.scalar_partition_trajectory import (
     build_scalar_partition_translation_machine,
@@ -83,7 +83,9 @@ def build(params):
         seed_to_start_node=mapping,
         edge_symbol=lambda edge: edge.target[0] & 1,
     )
-    return machine, InformationClockTraceCodec(machine)
+    return machine, InformationEventDecoder(
+        machine
+    )
 
 
 def transition_frontier(field):
@@ -114,10 +116,9 @@ def sample_states(family):
 def main():
     for name, params in CANDIDATES.items():
         _, _, legacy_validate = make_legacy_codec(params)
-        machine, trace_codec = build(params)
-        runtime_plan = InformationEventRuntimePlan(
-            trace_codec
-        )
+        machine, decoder = build(params)
+        trace_codec = decoder.trace_codec
+        runtime_plan = decoder.runtime_plan
         field = machine.connection.machine.field
         transition_steps, family = transition_frontier(field)
         steps = transition_steps + machine.seed_bits
