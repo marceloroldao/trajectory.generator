@@ -38,7 +38,8 @@ jobs:
             tests.test_reversible_fiber_lift \
             tests.test_lifted_causal_universe \
             tests.test_endogenous_vertical_dynamics \
-            tests.test_canonical_vertical_law
+            tests.test_canonical_vertical_law \
+            tests.test_canonical_vertical_state_machine
 
       - name: Run automatic recurrent-core gate
         env:
@@ -111,3 +112,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/canonical_vertical_law_search.py
+
+      - name: Gate canonical vertical final-state machine
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/canonical_vertical_final_state_gate.py
