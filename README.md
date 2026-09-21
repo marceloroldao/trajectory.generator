@@ -422,6 +422,54 @@ causal node `(history, topology, phase)` alone contains the complete past.
 
 See `docs/full_universe_streaming_trajectory_2026-09-20.md`.
 
+### 21. Floquet count-field recurrence
+
+`trajectory_generator/count_field_recurrence.py`,
+`trajectory_generator/floquet_count_field.py`, and
+`experiments/floquet_count_field_gate.py`
+
+The full-universe graph address no longer requires a count table that grows with
+physical time.
+
+The exact endpoint-count vector obeys a finite Krylov recurrence derived from
+the public graph. Because the topological universe is phase-lifted modulo 3, the
+recurrence is compressed further onto the phase-0 Floquet slice.
+
+Measured minimum recurrence orders:
+
+```text
+candidate      full order   phase-0 states   Floquet order
+robust_208         31             16              11
+balanced_221       23             13               8
+long_239           22             12               8
+```
+
+The seed Krylov basis is used only during derivation and is then discarded.
+During reverse decoding, a short fixed Floquet window walks backward together
+with the trajectory.
+
+GitHub Actions run `35551989944` passed the complete gate with unchanged
+languages, addresses, and frontiers:
+
+```text
+robust_208    -> 208
+balanced_221  -> 221
+long_239      -> 239
+```
+
+Estimated resident count-integer reductions versus retaining every reachable
+time row through the frontier:
+
+```text
+robust_208     ~29.16x
+balanced_221   ~34.33x
+long_239       ~41.54x
+```
+
+These ratios compare count integers, not Python heap bytes.
+
+See `docs/floquet_count_field_recurrence_2026-09-20.md`.
+
 ## Fundamental limit
 
 For a fixed `w`-bit final state and fixed step count `n`, there are at most `2^w` final states but `2^n` arbitrary binary trajectories. Therefore a globally injective mapping of all arbitrary `n`-bit messages into one `w`-bit final state is impossible when `n > w`.
@@ -442,32 +490,42 @@ H_adm(n) <= w.
 
 ## Current research direction
 
-The strongest operational result is now the **full-universe streaming graph
-address**. For the finite phase-lifted topological universe, one address state
-covers the initial prefix, transient evolution, recurrent entry, and recurrent
-orbit. Its exact path counts match the historical admissible-language counts and
-recover the original 63-bit frontiers `208 / 221 / 239`.
+The strongest operational result is now the combination of:
 
-The recurrent-core and information-clock work remains important because it
-explains *why* the path count grows: most transitions are deterministic flights
-and entropy is introduced only at a small set of branch states. The full graph
-codec establishes correctness; the recurrent decomposition exposes structure.
+1. the **full-universe streaming graph address**, which exactly represents the
+   complete topological trajectory language from the public initial prefix
+   through transient and recurrent evolution;
+2. the **Floquet count-field recurrence**, which regenerates the public
+   endpoint-count field without a time-indexed `O(V*T)` table or a persistent
+   Krylov basis.
 
-The next engineering/research boundary is the public count field itself. The
-reference `WeightedPathCodec` caches `D(v,t)` for every reached time, costing
-`O(V*T)` public big integers. This is not trajectory metadata, but it is still a
-time-indexed table. The next gate should recover the required count rows from
-the finite universe law using a compact recurrence, checkpoint hierarchy, or
-matrix/characteristic-polynomial method, while preserving exact local reverse
-steps.
+The decoder now has a fully fixed-memory public support mechanism: short
+recurrence coefficients plus a short reverse Floquet window. The count field
+walks backward with the trajectory and the historical 63-bit frontiers
+`208 / 221 / 239` are unchanged.
 
-A deeper unresolved question also remains: whether a similarly reversible
-coordinate can emerge directly from the universe's causal state geometry,
-rather than being an explicitly constructed enumerative address.
+This resolves the previous engineering boundary around the public count table.
+The main unresolved conceptual boundary is now sharper:
+
+> the final integer is still an explicitly constructed enumerative address
+> coordinate; the raw causal node `(history, topology, phase)` does not yet
+> uniquely expose the previous branch.
+
+The next research gate should therefore focus on **causal-state-native reverse
+coordinates**: search for endogenous observables or universe laws whose current
+causal geometry partitions predecessor branches directly, so that the
+enumerative address can shrink into — or become identical to — the causal
+state itself.
+
+A secondary engineering path is to derive an even smaller modal count
+coordinate that avoids reconstructing a full endpoint-count row during each
+reverse step.
 
 ## Quick start
 
 ```bash
+python experiments/floquet_count_field_gate.py
+python experiments/count_field_recurrence_gate.py
 python experiments/full_universe_streaming_codec.py
 python experiments/automatic_endogenous_pipeline_gate.py
 python experiments/information_clock_streaming_codec.py
