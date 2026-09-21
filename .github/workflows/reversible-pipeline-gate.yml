@@ -52,7 +52,16 @@ jobs:
             tests.test_history_naturality_no_go \
             tests.test_stationary_reversible_cover_no_go \
             tests.test_branch_information_budget \
-            tests.test_vertical_conjugacy_class
+            tests.test_vertical_conjugacy_class \
+            tests.test_horizontal_vertical_entropy \
+            tests.test_vertical_dominance \
+            tests.test_vertical_entropy_rate \
+            tests.test_information_clock_statistics \
+            tests.test_fiber_bundle_geometry \
+            tests.test_normalized_vertical_dynamics \
+            tests.test_exact_vertical_connection \
+            tests.test_vertical_connection_cursor \
+            tests.test_seeded_vertical_connection
 
       - name: Run automatic recurrent-core gate
         env:
@@ -287,3 +296,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/seeded_vertical_connection_gate.py
+
+      - name: Gate cursor vertical connection performance
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/cursor_vertical_connection_performance.py
