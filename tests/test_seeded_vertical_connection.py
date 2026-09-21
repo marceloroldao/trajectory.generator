@@ -90,6 +90,70 @@ class SeededVerticalConnectionTests(unittest.TestCase):
                     (state, steps),
                 )
 
+    def test_cursor_decode_matches_direct_decoder(self):
+        local, _ = self.build()
+
+        for steps in range(1, 10):
+            if steps < local.seed_bits:
+                states = range(1 << steps)
+            else:
+                states = range(
+                    local.connection.machine.oracle.total_count(
+                        steps - local.seed_bits
+                    )
+                )
+
+            for state in states:
+                try:
+                    direct = local.decode_direct(
+                        state,
+                        steps,
+                    )
+                except ValueError:
+                    continue
+                self.assertEqual(
+                    local.decode(state, steps),
+                    direct,
+                )
+
+    def test_cursor_decode_does_not_use_scalar_oracle(self):
+        local, reference = self.build()
+        steps = 8
+        valid_state = None
+        expected = None
+
+        total = (
+            reference.partition_machine.oracle.total_count(
+                steps - reference.seed_bits
+            )
+        )
+        for state in range(total):
+            try:
+                expected = reference.decode(
+                    state,
+                    steps,
+                )
+                valid_state = state
+                break
+            except ValueError:
+                continue
+
+        self.assertIsNotNone(valid_state)
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError(
+                "optimized cursor decode requested scalar_at"
+            )
+
+        local.connection.machine.oracle.scalar_at = forbidden
+        self.assertEqual(
+            local.decode(
+                valid_state,
+                steps,
+            ),
+            expected,
+        )
+
     def test_empty_trajectory(self):
         local, _ = self.build()
         self.assertEqual(
