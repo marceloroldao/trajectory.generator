@@ -268,6 +268,18 @@ def main():
             f"{encode_speedup:.3f}",
             "reverse_steps",
             metrics.reverse_steps if metrics else None,
+            "reverse_unifilar_steps",
+            (
+                metrics.reverse_unifilar_steps
+                if metrics
+                else None
+            ),
+            "partition_reverse_steps",
+            (
+                metrics.partition_reverse_steps
+                if metrics
+                else None
+            ),
             "stored_floquet_rows",
             (
                 metrics.maximum_stored_floquet_rows
