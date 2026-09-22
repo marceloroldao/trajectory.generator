@@ -341,3 +341,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/information_event_cursor_gate.py
+
+      - name: Gate reusable information-event final-state decoder
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/information_event_decoder_gate.py
