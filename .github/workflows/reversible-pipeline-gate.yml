@@ -347,3 +347,9 @@ jobs:
           PYTHONPATH: .
         run: |
           python experiments/information_event_decoder_gate.py
+
+      - name: Gate wide information-event decoder scaling
+        env:
+          PYTHONPATH: .
+        run: |
+          python experiments/wide_information_event_decoder_gate.py
